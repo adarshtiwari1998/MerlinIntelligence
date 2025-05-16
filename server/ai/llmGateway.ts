@@ -134,7 +134,7 @@ export class LLMGateway {
                     // Build conversation history with better context management
                     const history = request.context?.history || [];
                     const recentHistory = history.slice(-5); // Keep last 5 messages for context
-                    
+
                     // Create a structured context from conversation history
                     const conversationContext = recentHistory.map(msg => ({
                         role: msg.role,
@@ -147,12 +147,24 @@ export class LLMGateway {
                         .filter(msg => msg.role === "assistant")
                         .pop()?.content || '';
 
-                    // Build enhanced prompt with context
+                    // Build enhanced prompt with smarter context analysis
                     let enhancedPrompt = '';
-                    
-                    // If this is a follow-up question, include context
-                    if (recentHistory.length > 0) {
-                        enhancedPrompt = `Based on our previous conversation about:\n\n${lastContext}\n\nAnd with this history:\n${recentHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}\n\nPlease answer this follow-up question: ${request.prompt}`;
+
+                    // Analyze if this is a follow-up question
+                    const isFollowUp = request.prompt.toLowerCase().includes('flowchart') || 
+                      request.context?.lastQuery?.toLowerCase().includes('api');
+
+                    if (isFollowUp && recentHistory.length > 0) {
+                        // Extract relevant context and concepts
+                        const relevantConcepts = request.context?.conversationContext
+                            ?.flatMap(msg => msg.concepts || [])
+                            .filter(Boolean);
+
+                        const contextualTopic = relevantConcepts?.length 
+                            ? `previous discussion about ${relevantConcepts.join(', ')}`
+                            : lastContext;
+
+                        enhancedPrompt = `Based on our ${contextualTopic}, and considering the full context of our conversation:\n\n${recentHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}\n\nPlease provide a detailed response to this follow-up request: ${request.prompt}\n\nIf this involves creating a diagram or flowchart, please use proper Mermaid syntax and ensure the diagram is clear and well-structured.`;
                     } else {
                         enhancedPrompt = request.prompt;
                     }
@@ -168,17 +180,17 @@ export class LLMGateway {
                         text: msg.content,
                         role: msg.role === "assistant" ? "model" : "user"
                     }));
-                    
+
                     // Add the enhanced prompt as the final message
                     messages.push({ text: enhancedPrompt });
                     if (request.prompt.toLowerCase().includes('flowchart') || 
                         request.prompt.toLowerCase().includes('diagram')) {
-                        
+
                         // Get last topic discussed from history
                         const previousMessages = history
                             .map(msg => msg.content)
                             .join('\n');
-                            
+
                         const lastTopic = previousMessages
                             .split('\n')
                             .filter(line => !line.toLowerCase().includes('flowchart') && 
@@ -192,7 +204,7 @@ export class LLMGateway {
                             // Create a detailed flowchart about the previously discussed topic
                         \`\`\``;
                     }
-                    
+
                     messages.push({ text: enhancedPrompt });
                     const result = await this.model.generateContent(messages);
                     const geminiResponse = await result.response;

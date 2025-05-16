@@ -10,20 +10,37 @@ export function useAIAgent() {
     setIsLoading(true);
     
     // Enhanced context handling
-    const recentMessages = messages.slice(-5);
-    const lastAssistantMessage = recentMessages
-        .filter(msg => msg.role === "assistant")
-        .pop();
+    // Get more context from recent messages
+    const recentMessages = messages.slice(-10); // Increased context window
+    
+    // Find the main topic from recent substantial messages
+    const mainTopic = recentMessages
+        .filter(msg => msg.role === "assistant" && msg.content.length > 50)
+        .map(msg => msg.content.split('\n')[0])
+        .pop() || '';
+
+    // Create a structured conversation history
+    const conversationSummary = recentMessages
+        .map(msg => {
+            // Extract key concepts from each message
+            const concepts = msg.content
+                .toLowerCase()
+                .match(/\b(api|interface|flowchart|diagram|architecture)\b/g) || [];
+            
+            return {
+                role: msg.role,
+                content: msg.content,
+                timestamp: msg.timestamp,
+                concepts: [...new Set(concepts)] // Unique concepts
+            };
+        });
 
     request.context = {
         ...request.context,
         history: recentMessages,
-        mainTopic: lastAssistantMessage?.content.split('\n')[0] || '',
-        conversationContext: recentMessages.map(msg => ({
-            role: msg.role,
-            content: msg.content,
-            timestamp: msg.timestamp
-        }))
+        mainTopic,
+        conversationContext: conversationSummary,
+        lastQuery: messages[messages.length - 1]?.content || ''
     };
     
     try {
