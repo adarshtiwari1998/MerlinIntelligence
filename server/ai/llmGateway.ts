@@ -19,23 +19,37 @@ export class LLMGateway {
   
   private gemini: any; // Add proper type when implementing
   private currentProvider: ModelProvider = "openai";
+  private availableProviders: ModelProvider[] = [];
   
   constructor() {
-    // Initialize OpenAI client with API key from environment variables
-    this.openai = new OpenAI({ 
-      apiKey: process.env.OPENAI_API_KEY || "sk-dummy-key-for-dev" 
-    });
+    // Initialize OpenAI client and check if API key is valid
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (openaiKey && openaiKey !== "sk-dummy-key-for-dev") {
+      this.openai = new OpenAI({ apiKey: openaiKey });
+      this.availableProviders.push("openai");
+    }
     
-    // Initialize Anthropic client with API key from environment variables
-    this.anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY || "sk-ant-dummy-key-for-dev"
-    });
+    // Initialize Anthropic client and check if API key is valid
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    if (anthropicKey && anthropicKey !== "sk-ant-dummy-key-for-dev") {
+      this.anthropic = new Anthropic({ apiKey: anthropicKey });
+      this.availableProviders.push("anthropic");
+    }
     
-    // Initialize Gemini client (you'll need to add the Gemini SDK)
-    if (process.env.GEMINI_API_KEY) {
+    // Initialize Gemini client if API key is available
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (geminiKey) {
       // Initialize Gemini client here
+      this.availableProviders.push("gemini");
       console.log("Gemini API key detected");
     }
+    
+    // Set initial provider based on available APIs
+    if (this.availableProviders.length > 0) {
+      this.currentProvider = this.availableProviders[0];
+    }
+    
+    console.log("Available providers:", this.availableProviders);
     
     // Initialize cache for responses
     this.cache = new AICache();
@@ -44,10 +58,14 @@ export class LLMGateway {
   }
   
   private async tryNextProvider() {
-    const providers: ModelProvider[] = ["openai", "anthropic", "gemini"];
-    const currentIndex = providers.indexOf(this.currentProvider);
-    const nextIndex = (currentIndex + 1) % providers.length;
-    this.currentProvider = providers[nextIndex];
+    if (this.availableProviders.length === 0) {
+      throw new Error("No available AI providers");
+    }
+    
+    const currentIndex = this.availableProviders.indexOf(this.currentProvider);
+    const nextIndex = (currentIndex + 1) % this.availableProviders.length;
+    this.currentProvider = this.availableProviders[nextIndex];
+    console.log(`Switching to provider: ${this.currentProvider}`);
     return this.currentProvider;
   }
   
