@@ -6,6 +6,14 @@ import { ThumbsUp, ThumbsDown, Clipboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import hljs from 'highlight.js';
+import mermaid from 'mermaid';
+
+// Initialize mermaid
+mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    securityLevel: 'loose'
+});
 
 interface MessageProps {
     message: MessageType;
@@ -103,6 +111,25 @@ const ContentBlock = ({ block }: { block: any }) => {
     }, []);
 
     switch (block.type) {
+        case 'mermaid':
+            useEffect(() => {
+                if (blockRef.current) {
+                    mermaid.render(`mermaid-${block.content.slice(0, 10)}`, block.content)
+                        .then(({ svg }) => {
+                            if (blockRef.current) {
+                                blockRef.current.innerHTML = svg;
+                            }
+                        });
+                }
+            }, [block.content]);
+            
+            return (
+                <div
+                    ref={blockRef}
+                    className="my-4 flex justify-center bg-white dark:bg-gray-800 rounded-lg p-4"
+                />
+            );
+            
         case 'code':
             return (
                 <div
