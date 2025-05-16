@@ -9,6 +9,12 @@ export function useAIAgent() {
   const sendMessage = async (request: ModelRequest): Promise<ModelResponse | null> => {
     setIsLoading(true);
     
+    // Add message history to context
+    request.context = {
+        ...request.context,
+        history: messages.slice(-5) // Last 5 messages for context
+    };
+    
     try {
       // Add user message to state
       const userMessage: Message = {

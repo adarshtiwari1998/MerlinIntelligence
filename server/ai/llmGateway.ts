@@ -109,7 +109,12 @@ export class LLMGateway {
                         console.error("Gemini model is undefined or null!");
                         throw new Error("Gemini model not initialized");
                     }
-                    const result = await this.model.generateContent([{ text: request.prompt }]);
+                    // Build conversation history
+                    const history = request.context?.history || [];
+                    const messages = history.map(msg => ({ text: msg.content }));
+                    messages.push({ text: request.prompt });
+
+                    const result = await this.model.generateContent(messages);
                     const geminiResponse = await result.response;
                     return {
                         text: geminiResponse.text(),
