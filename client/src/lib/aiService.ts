@@ -4,10 +4,18 @@ import { apiRequest } from "./queryClient";
 export async function sendAIRequest(request: ModelRequest): Promise<ModelResponse> {
   try {
     const response = await apiRequest("POST", "/api/llm", request);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     return await response.json();
   } catch (error) {
     console.error("Error sending AI request:", error);
-    throw error;
+    return {
+      text: `Error: Failed to connect to the AI service. Please check your connection and try again. ${error instanceof Error ? error.message : ''}`,
+      modelUsed: "error",
+      tokensUsed: 0,
+      latencyMs: 0
+    };
   }
 }
 
