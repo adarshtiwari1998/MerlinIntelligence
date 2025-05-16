@@ -112,8 +112,26 @@ export class LLMGateway {
                     // Build conversation history
                     const history = request.context?.history || [];
                     const messages = history.map(msg => ({ text: msg.content }));
-                    messages.push({ text: request.prompt });
-
+                    
+                    // Enhance prompt based on context and request type
+                    let enhancedPrompt = request.prompt;
+                    if (request.prompt.toLowerCase().includes('flowchart') || 
+                        request.prompt.toLowerCase().includes('diagram')) {
+                        
+                        // Find relevant context from history
+                        const context = history
+                            .map(msg => msg.content)
+                            .join(' ')
+                            .match(/(?:about|regarding|for)\s+([^\.]+)/i)?.[1] || '';
+                            
+                        enhancedPrompt = `Create a Mermaid diagram for ${context || request.prompt}. Use this format:
+                        \`\`\`mermaid
+                        flowchart TD
+                            // Your flowchart nodes and connections here
+                        \`\`\``;
+                    }
+                    
+                    messages.push({ text: enhancedPrompt });
                     const result = await this.model.generateContent(messages);
                     const geminiResponse = await result.response;
                     return {

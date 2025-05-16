@@ -113,23 +113,24 @@ const ContentBlock = ({ block }: { block: any }) => {
     switch (block.type) {
         case 'mermaid':
             useEffect(() => {
-                if (blockRef.current) {
-                    mermaid.render(`mermaid-${block.content.slice(0, 10)}`, block.content)
-                        .then(({ svg }) => {
-                            if (blockRef.current) {
-                                blockRef.current.innerHTML = svg;
-                            }
-                        });
-                }
-            }, [block.content]);
-            
+        if (blockRef.current && block.content.includes('```mermaid')) {
+            const mermaidCode = block.content.split('```mermaid')[1].split('```')[0].trim();
+            mermaid.render(`mermaid-${Date.now()}`, mermaidCode)
+                .then(({ svg }) => {
+                    if (blockRef.current) {
+                        blockRef.current.innerHTML = svg;
+                    }
+                });
+        }
+    }, [block.content]);
+
             return (
                 <div
                     ref={blockRef}
                     className="my-4 flex justify-center bg-white dark:bg-gray-800 rounded-lg p-4"
                 />
             );
-            
+
         case 'code':
             return (
                 <div
