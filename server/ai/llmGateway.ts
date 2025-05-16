@@ -1,10 +1,20 @@
 import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import { ModelRequest, ModelResponse } from "@shared/schema";
 import { AICache } from "./cache";
-import { PRIMARY_MODEL, CODE_MODEL, EMBEDDINGS_MODEL, computeHash } from "./models";
+import { 
+  PRIMARY_MODEL, 
+  CODE_MODEL, 
+  EMBEDDINGS_MODEL, 
+  ANTHROPIC_PRIMARY_MODEL,
+  ANTHROPIC_CODE_MODEL,
+  ModelProvider,
+  computeHash 
+} from "./models";
 
 export class LLMGateway {
   private openai: OpenAI;
+  private anthropic: Anthropic;
   private cache: AICache;
   
   constructor() {
@@ -13,8 +23,15 @@ export class LLMGateway {
       apiKey: process.env.OPENAI_API_KEY || "sk-dummy-key-for-dev" 
     });
     
+    // Initialize Anthropic client with API key from environment variables
+    this.anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY || "sk-ant-dummy-key-for-dev"
+    });
+    
     // Initialize cache for responses
     this.cache = new AICache();
+    
+    console.log("LLM Gateway initialized with OpenAI and Anthropic support");
   }
   
   /**
