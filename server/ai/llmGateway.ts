@@ -17,6 +17,9 @@ export class LLMGateway {
   private anthropic: Anthropic;
   private cache: AICache;
   
+  private gemini: any; // Add proper type when implementing
+  private currentProvider: ModelProvider = "openai";
+  
   constructor() {
     // Initialize OpenAI client with API key from environment variables
     this.openai = new OpenAI({ 
@@ -28,10 +31,24 @@ export class LLMGateway {
       apiKey: process.env.ANTHROPIC_API_KEY || "sk-ant-dummy-key-for-dev"
     });
     
+    // Initialize Gemini client (you'll need to add the Gemini SDK)
+    if (process.env.GEMINI_API_KEY) {
+      // Initialize Gemini client here
+      console.log("Gemini API key detected");
+    }
+    
     // Initialize cache for responses
     this.cache = new AICache();
     
-    console.log("LLM Gateway initialized with OpenAI and Anthropic support");
+    console.log("LLM Gateway initialized with OpenAI, Anthropic, and Gemini support");
+  }
+  
+  private async tryNextProvider() {
+    const providers: ModelProvider[] = ["openai", "anthropic", "gemini"];
+    const currentIndex = providers.indexOf(this.currentProvider);
+    const nextIndex = (currentIndex + 1) % providers.length;
+    this.currentProvider = providers[nextIndex];
+    return this.currentProvider;
   }
   
   /**
@@ -93,16 +110,30 @@ export class LLMGateway {
     } catch (error) {
       console.error(`Error in ${request.modelType} model:`, error);
       
-      // If model fails, try falling back to OpenAI primary model
-      if (request.modelType === "code" || request.context?.provider === "anthropic") {
-        console.log("Falling back to OpenAI primary model");
+      // Try other providers if current one fails
+      let attempts = 3; // Try all three providers
+      while (attempts > 0) {
+        const nextProvider = await this.tryNextProvider();
+        console.log(`Attempting with next provider: ${nextProvider}`);
+        
         try {
-          response = await this.callPrimaryModel(request);
+          switch (nextProvider) {
+            case "anthropic":
+              response = await this.callAnthropicPrimaryModel(request);
+              break;
+            case "gemini":
+              // Implement Gemini call here
+              throw new Error("Gemini implementation pending");
+            default:
+              response = await this.callPrimaryModel(request);
+          }
+          
           const latencyMs = Date.now() - startTime;
           response.latencyMs = latencyMs;
           return response;
         } catch (fallbackError) {
-          console.error("Fallback to primary model also failed:", fallbackError);
+          console.error(`Failed with provider ${nextProvider}:`, fallbackError);
+          attempts--;
         }
       }
       
