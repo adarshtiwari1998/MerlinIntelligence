@@ -39,7 +39,7 @@ export class LLMGateway {
     // Initialize Gemini client if API key is available
     const geminiKey = process.env.GEMINI_API_KEY;
     if (geminiKey) {
-      const { GoogleGenerativeAI } = require("@google/generative-ai");
+      const { GoogleGenerativeAI } = await import("@google/generative-ai");
       const genAI = new GoogleGenerativeAI(geminiKey);
       this.gemini = genAI.getGenerativeModel({ model: "gemini-pro" });
       this.availableProviders.push("gemini");
