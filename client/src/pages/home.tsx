@@ -180,17 +180,23 @@ gateway = LLMGateway()`,
         />
         
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-          <EditorSection 
-            files={files}
-            setFiles={setFiles}
-          />
-          
-          <AIInteractionPanel 
-            messages={messages}
-            isLoading={isLoading}
-            onSendMessage={sendMessage}
-            selectedModel={selectedModel}
-          />
+          {/* Only show editor when code-related task is selected or editor is needed */}
+          <div className="flex-1 flex md:flex-row overflow-hidden">
+            <AIInteractionPanel 
+              messages={messages}
+              isLoading={isLoading}
+              onSendMessage={sendMessage}
+              selectedModel={selectedModel}
+            />
+            
+            {/* Editor shown on the side with smaller width */}
+            <div className="hidden md:block md:w-1/2">
+              <EditorSection 
+                files={files}
+                setFiles={setFiles}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </MainLayout>

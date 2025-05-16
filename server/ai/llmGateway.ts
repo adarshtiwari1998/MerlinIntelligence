@@ -75,12 +75,17 @@ export class LLMGateway {
    */
   private async callPrimaryModel(request: ModelRequest): Promise<ModelResponse> {
     try {
+      console.log("Calling OpenAI primary model with API key:", this.openai.apiKey ? "API key is set" : "No API key");
+      
+      // Build a robust system prompt to handle various user questions
+      const systemPrompt = "You are a versatile AI assistant that can help with coding, text analysis, explanations, and general questions. Respond in a helpful, accurate, and concise manner. For code, include explanations of what the code does.";
+      
       const completion = await this.openai.chat.completions.create({
         model: PRIMARY_MODEL,
         messages: [
           {
             role: "system",
-            content: "You are a helpful AI assistant specialized in coding and software development. Provide clear, accurate, and efficient solutions."
+            content: systemPrompt
           },
           {
             role: "user",
@@ -91,15 +96,25 @@ export class LLMGateway {
         temperature: request.temperature,
       });
       
+      // For safety, check if we have a valid response
+      const responseText = completion.choices[0].message.content || "I'm sorry, I couldn't generate a response at this time.";
+      
       return {
-        text: completion.choices[0].message.content || "No response generated",
+        text: responseText,
         modelUsed: PRIMARY_MODEL,
         tokensUsed: completion.usage?.total_tokens || 0,
         latencyMs: 0 // Will be set by the caller
       };
     } catch (error) {
       console.error("Error calling primary model:", error);
-      throw new Error(`Primary model error: ${error instanceof Error ? error.message : "Unknown error"}`);
+      
+      // Create a more helpful error response
+      return {
+        text: "I apologize, but I encountered an error while processing your request. This could be due to API limits, connection issues, or other technical problems. Please try again with a different question or check if the OpenAI API key is properly configured.",
+        modelUsed: "error",
+        tokensUsed: 0,
+        latencyMs: 0
+      };
     }
   }
   
@@ -109,14 +124,16 @@ export class LLMGateway {
   private async callCodeModel(request: ModelRequest): Promise<ModelResponse> {
     try {
       // For code-related tasks, we'll add specific instructions to the prompt
-      let systemPrompt = "You are a code-specialized AI assistant. ";
+      let systemPrompt = "You are a code-specialized AI assistant that excels at programming tasks. ";
       
       if (request.context?.taskType === "code_completion") {
-        systemPrompt += "Complete the code snippet with the most logical continuation. Focus on correctness and best practices.";
+        systemPrompt += "Complete the code snippet with the most logical continuation. Focus on correctness and best practices. Make sure to handle edge cases and provide efficient solutions.";
       } else if (request.context?.taskType === "code_generation") {
-        systemPrompt += "Generate well-structured, efficient code based on the requirements. Include comments to explain key parts.";
+        systemPrompt += "Generate well-structured, efficient code based on the requirements. Include helpful comments to explain key parts and make the code easily understandable.";
       } else if (request.context?.taskType === "code_explanation") {
-        systemPrompt += "Explain the provided code clearly, focusing on its purpose, algorithm, and any important concepts.";
+        systemPrompt += "Explain the provided code clearly, focusing on its purpose, algorithm, and any important concepts. Break down complex parts into simple explanations.";
+      } else {
+        systemPrompt += "Provide helpful coding assistance based on the user's request. Focus on delivering practical, working solutions with explanations.";
       }
       
       // Add the code context if provided
@@ -141,15 +158,25 @@ export class LLMGateway {
         temperature: request.temperature,
       });
       
+      // For safety, check if we have a valid response
+      const responseText = completion.choices[0].message.content || "I'm sorry, I couldn't generate code for that request.";
+      
       return {
-        text: completion.choices[0].message.content || "No response generated",
+        text: responseText,
         modelUsed: CODE_MODEL,
         tokensUsed: completion.usage?.total_tokens || 0,
         latencyMs: 0 // Will be set by the caller
       };
     } catch (error) {
       console.error("Error calling code model:", error);
-      throw new Error(`Code model error: ${error instanceof Error ? error.message : "Unknown error"}`);
+      
+      // Create a more helpful error response
+      return {
+        text: "I apologize, but I encountered an error while processing your code request. Please try simplifying your request or check if the OpenAI API key is properly configured. For code generation, being specific about the programming language and functionality you need can help.",
+        modelUsed: "error",
+        tokensUsed: 0,
+        latencyMs: 0
+      };
     }
   }
   
@@ -174,7 +201,14 @@ export class LLMGateway {
       };
     } catch (error) {
       console.error("Error calling embeddings model:", error);
-      throw new Error(`Embeddings model error: ${error instanceof Error ? error.message : "Unknown error"}`);
+      
+      // Create a more helpful error response instead of throwing
+      return {
+        text: "I apologize, but I encountered an error while generating embeddings for your text. This feature is used for semantic search and similarity calculations. Please try again with different text or check if the OpenAI API key is properly configured.",
+        modelUsed: "error",
+        tokensUsed: 0,
+        latencyMs: 0
+      };
     }
   }
   

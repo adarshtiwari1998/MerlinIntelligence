@@ -100,7 +100,7 @@ export default function AIInteractionPanel({
               onKeyDown={handleKeyDown}
               rows={2}
               className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              placeholder="Ask for code, explanations, or help with your project..."
+              placeholder="Ask me anything about coding, text analysis, or general questions..."
               disabled={isLoading}
             />
             <div className="absolute bottom-2 right-2 flex items-center space-x-1 text-gray-400">
