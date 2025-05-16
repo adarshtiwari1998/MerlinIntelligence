@@ -1,0 +1,79 @@
+B. Secondary/Specialized LLMs
+B.1. Smaller, Code-Focused Models (e.g., fine-tuned StarCoder, Code Llama, or private GPTs hosted on AKS)
+Primary Goal: To provide fast, efficient AI assistance for less complex, frequent tasks like code completion, quick suggestions, or potentially offline capabilities. These models are optimized for speed and specific code-related tasks.
+Inputs (to the hosted model, typically via the LLM Gateway or a dedicated internal service):
+Partial Code Snippet: The current line or block of code being typed by the user (for auto-completion).
+Limited Context: Surrounding lines of code, current function/class scope, imported libraries.
+Prompt (for quick suggestions): A very concise prompt, possibly templated (e.g., "Suggest next line for: {current_code}").
+Model Parameters (optimized for speed and task):
+max_new_tokens: Usually small for completions.
+temperature: Often lower for more predictable completions.
+Model Endpoint: Internal URL of the self-hosted model on AKS or other infrastructure.
+Outputs (from the hosted model, to the LLM Gateway or directly to the relevant frontend component):
+Code Completion Suggestions: One or more likely next tokens or lines of code.
+Quick Code Snippets: Small, relevant code blocks for simple tasks.
+Confidence Scores (Optional): For ranking suggestions.
+Latency Information: Response time of the model.
+Error Messages: If the model inference fails.
+B.2. Embeddings Models (for code search and similarity)
+Primary Goal: To convert code snippets or natural language queries into dense vector representations (embeddings) for tasks like semantic code search, finding similar code examples, or identifying duplicate code.
+Inputs (to the embeddings model service, which could be Azure OpenAI Embeddings or a self-hosted model):
+Text/Code Snippet(s): The input code or natural language query to be converted into an embedding. This could be:
+A user's search query (e.g., "function to sort a list of objects by attribute").
+Code from the user's current project (for indexing or finding similar existing code).
+Code from a knowledge base or documentation.
+Model Identifier: Specifies which embeddings model to use (e.g., text-embedding-ada-002).
+API Key & Endpoint (if using a managed service).
+Outputs (from the embeddings model service):
+Vector Embedding(s): A list of floating-point numbers representing the semantic meaning of the input text/code.
+Token Usage Information (for managed services).
+Error Messages.
+Subsequent Inputs/Outputs for Search/Similarity (using the embeddings):
+Inputs to a Vector Database/Search Index (e.g., Azure AI Search with vector capabilities, FAISS, Pinecone):
+Query Embedding: The embedding of the user's search query.
+Indexed Embeddings: A collection of pre-computed embeddings for a corpus of code.
+k: Number of nearest neighbors (similar items) to retrieve.
+Outputs from Vector Database/Search Index:
+A list of k most similar code snippets/documents along with their similarity scores (e.g., cosine similarity).
+IDs or references to the original source of these similar items.
+C. Strategy: Layered Model Approach
+Primary Goal: To optimize for both performance and capability by routing AI requests to the most appropriate model based on task complexity, latency requirements, and cost considerations. This is a conceptual strategy influencing how the LLM Gateway makes decisions.
+Inputs (to the decision-making logic within the LLM Gateway or a routing service):
+User Request Type: (e.g., code completion, full function generation, code explanation, debugging help, code search).
+Context Size/Complexity: Amount of code or text provided as context.
+User Preferences/Settings (Optional): (e.g., "prioritize speed for completions," "use most capable model for generation").
+Current System Load/Model Availability: Status of different AI model backends.
+Cost Considerations/Budgetary Constraints (Optional).
+Feature Flags: To enable/disable routing to certain models.
+Outputs (from the decision-making logic):
+Selected Model Target: The specific model (Primary LLM, specialized code model, embeddings model) to which the request will be routed.
+Modified Request Parameters (Optional): Parameters might be adjusted based on the chosen model (e.g., different max_tokens for a smaller model).
+Decision Log: Recording why a particular model was chosen (for analytics and debugging).
+D. LLM Gateway: A Secure API Layer
+Primary Goal: To act as a central, intelligent intermediary between the platform's frontend/backend services and the various AI models. It manages context, prompt engineering, API key security, rate limiting, caching, and request routing.
+Inputs (to the LLM Gateway from other platform services, e.g., IDE backend, AI-feature microservices):
+Raw User Request: The user's query or intended AI action (e.g., "explain this code," "complete this line," "generate a function for X").
+Contextual Data:
+Code from the editor (current file, selected text, project structure).
+Error messages, terminal output.
+User ID, session ID.
+Type of AI assistance requested (e.g., CODE_GENERATION, CODE_COMPLETION, CODE_EXPLANATION, DEBUGGING_ASSISTANCE).
+User/Tenant Specific Configuration (Optional): Custom prompts, model preferences, API keys for their own Azure OpenAI instances if BYOK (Bring Your Own Key) is supported.
+Platform-Wide Configuration: Default prompt templates, model routing rules, rate limit policies, caching strategies, API keys for platform-managed AI services.
+Outputs (from the LLM Gateway):
+To AI Models (as described in A & B):
+Formatted prompts (engineered for optimal performance with the target model).
+Context data packaged appropriately.
+Model parameters.
+API requests to the selected AI model endpoint.
+To Requesting Platform Service (e.g., IDE backend):
+Processed AI Model Response: The generated text/code, explanation, suggestions, or embeddings from the AI model.
+Cached Responses: If a similar request was recently processed and the result is still valid.
+Error Messages: If the request to the AI model failed, or if a gateway policy was violated (e.g., rate limit exceeded, content moderation block).
+Metadata: Token usage, model used, latency, cache hit/miss status.
+Logs: Detailed logs of incoming requests, outgoing requests to AI models, prompt construction, model responses, errors, policy enforcement, cache activity.
+Metrics: Request latency, error rates per model, token consumption, cache hit rates, rate limit enforcement counts.
+Security Actions:
+Redaction of sensitive data from prompts before sending to external models (if applicable).
+Enforcement of content moderation policies (potentially by calling an external content moderation API or using built-in features of Azure OpenAI).
+API key management and secure injection into requests to AI services.
