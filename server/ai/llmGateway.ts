@@ -38,8 +38,7 @@ export class LLMGateway {
     
     try {
       const { GoogleGenerativeAI } = await import("@google/generative-ai");
-      const genAI = new GoogleGenerativeAI(geminiKey);
-      gateway.gemini = genAI.getGenerativeModel({ model: "gemini-pro" });
+      gateway.gemini = new GoogleGenerativeAI(geminiKey);
       gateway.availableProviders.push("gemini");
       console.log("Gemini API key detected and initialized successfully");
     } catch (error) {
@@ -111,7 +110,8 @@ export class LLMGateway {
       
       // Route to appropriate model based on type and provider
       if (provider === "gemini") {
-        const result = await this.gemini.generateContent(request.prompt);
+        const model = this.gemini.getGenerativeModel({ model: "gemini-pro" });
+        const result = await model.generateContent(request.prompt);
         const response = await result.response;
         return {
           text: response.text(),
