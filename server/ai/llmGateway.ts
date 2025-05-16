@@ -13,23 +13,15 @@ import {
 } from "./models";
 
 export class LLMGateway {
-  private openai: OpenAI;
   private anthropic: Anthropic;
   private cache: AICache;
   
   private gemini: any; // Add proper type when implementing
-  private currentProvider: ModelProvider = "openai";
+  private currentProvider: ModelProvider = "gemini";
   private availableProviders: ModelProvider[] = [];
   
   private static async initialize(): Promise<LLMGateway> {
     const gateway = new LLMGateway();
-    
-    // Initialize OpenAI client and check if API key is valid
-    const openaiKey = process.env.OPENAI_API_KEY;
-    if (openaiKey && openaiKey !== "sk-dummy-key-for-dev") {
-      gateway.openai = new OpenAI({ apiKey: openaiKey });
-      gateway.availableProviders.push("openai");
-    }
     
     // Initialize Anthropic client and check if API key is valid
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
