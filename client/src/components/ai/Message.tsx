@@ -7,9 +7,18 @@ import { Button } from "@/components/ui/button";
 
 interface MessageProps {
   message: MessageType;
+  isLoading?: boolean;
 }
 
-export default function Message({ message }: MessageProps) {
+const LoadingAnimation = () => (
+  <div className="flex space-x-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
+    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '600ms' }}></div>
+  </div>
+);
+
+export default function Message({ message, isLoading }: MessageProps) {
   const isUser = message.role === "user";
   const isSystem = message.role === "system";
   const isAssistant = message.role === "assistant";
@@ -28,7 +37,7 @@ export default function Message({ message }: MessageProps) {
   const renderContent = (content: string) => {
     // Split content by code blocks (```code```)
     const parts = content.split(/(```[\s\S]*?```)/);
-    
+
     return parts.map((part, index) => {
       // Check if this part is a code block
       if (part.startsWith('```') && part.endsWith('```')) {
@@ -36,14 +45,14 @@ export default function Message({ message }: MessageProps) {
         const codeMatch = part.match(/```(?:(\w+)\n)?([\s\S]*?)```/);
         const language = codeMatch?.[1] || '';
         const code = codeMatch?.[2] || '';
-        
+
         return (
           <pre key={index} className="bg-gray-200 dark:bg-gray-700 p-2 rounded-md mt-2 overflow-x-auto text-xs">
             {code}
           </pre>
         );
       }
-      
+
       // For regular text, render with line breaks and formatting
       return (
         <div key={index} className="whitespace-pre-wrap">
@@ -71,7 +80,7 @@ export default function Message({ message }: MessageProps) {
           </svg>
         </div>
       )}
-      
+
       <div className="flex-1">
         <div 
           className={`rounded-lg p-3 text-sm ${
@@ -80,9 +89,9 @@ export default function Message({ message }: MessageProps) {
               : 'bg-gray-100 dark:bg-gray-800'
           }`}
         >
-          {renderContent(message.content)}
+          {isLoading ? <LoadingAnimation /> : renderContent(message.content)}
         </div>
-        
+
         <div className="flex items-center justify-between mt-1">
           <span className="text-xs text-gray-500">
             {isUser ? 'You' : isAssistant ? (message.modelUsed || 'AI') : 'System'}
@@ -90,7 +99,7 @@ export default function Message({ message }: MessageProps) {
             {' • '}
             {formatTime(message.timestamp)}
           </span>
-          
+
           {isAssistant && (
             <div className="flex items-center space-x-2">
               <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">

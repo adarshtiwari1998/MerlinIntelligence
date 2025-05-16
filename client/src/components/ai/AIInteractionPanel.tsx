@@ -63,28 +63,13 @@ export default function AIInteractionPanel({
       
       <div className="flex-1 overflow-auto p-4">
         <div className="space-y-4">
-          {messages.map((message) => (
-            <Message key={message.id} message={message} />
+          {messages.map((message, index) => (
+            <Message 
+              key={message.id} 
+              message={message} 
+              isLoading={isLoading && index === messages.length - 1} 
+            />
           ))}
-          
-          {isLoading && (
-            <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
-                <svg className="h-4 w-4 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 text-sm flex items-center">
-                  <div className="dots-loading">
-                    <div className="dot"></div>
-                    <div className="dot"></div>
-                    <div className="dot"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
           
           <div ref={messagesEndRef} />
         </div>
