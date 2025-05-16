@@ -171,31 +171,86 @@ gateway = LLMGateway()`,
 
   return (
     <MainLayout>
-      <div className="flex-1 flex flex-col overflow-hidden bg-gray-100 dark:bg-gray-900">
-        <ControlPanel 
-          selectedModel={selectedModel} 
-          onModelChange={setSelectedModel}
-          selectedTaskType={selectedTaskType}
-          onTaskTypeChange={setSelectedTaskType}
-        />
-        
-        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-          {/* Only show editor when code-related task is selected or editor is needed */}
-          <div className="flex-1 flex md:flex-row overflow-hidden">
-            <AIInteractionPanel 
-              messages={messages}
-              isLoading={isLoading}
-              onSendMessage={sendMessage}
-              selectedModel={selectedModel}
-            />
-            
-            {/* Editor shown on the side with smaller width */}
-            <div className="hidden md:block md:w-1/2">
-              <EditorSection 
-                files={files}
-                setFiles={setFiles}
-              />
+      <div className="flex-1 flex flex-col items-center justify-center overflow-hidden bg-gray-50 dark:bg-gray-900 p-4">
+        <div className="w-full max-w-3xl flex flex-col items-center">
+          <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-6">Welcome to AI Agent</h1>
+          
+          {messages.length > 0 ? (
+            <div className="w-full bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6 overflow-y-auto max-h-[60vh]">
+              {messages.map((message) => (
+                <div key={message.id} className="p-4 border-b border-gray-100 dark:border-gray-700">
+                  <div className="flex items-start gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      message.role === 'assistant' 
+                        ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' 
+                        : message.role === 'system' 
+                          ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                          : 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400'
+                    }`}>
+                      {message.role === 'assistant' ? 'AI' : message.role === 'system' ? 'S' : 'U'}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{message.content}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
+          ) : null}
+          
+          <div className="w-full relative">
+            <textarea
+              placeholder="Type your prompt here"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage(inputValue);
+                }
+              }}
+              className="w-full p-4 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={2}
+            />
+            <button
+              onClick={() => sendMessage(inputValue)}
+              disabled={isLoading || !inputValue.trim()}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300 disabled:text-gray-500 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
+          
+          <div className="flex flex-wrap justify-center gap-2 mt-6">
+            <button className="flex items-center gap-2 px-4 py-2 text-sm rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <span className="w-5 h-5 flex items-center justify-center">📊</span>
+              <span>Analyze data</span>
+            </button>
+            <button className="flex items-center gap-2 px-4 py-2 text-sm rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <span className="w-5 h-5 flex items-center justify-center">🌐</span>
+              <span>Research with web</span>
+            </button>
+            <button className="flex items-center gap-2 px-4 py-2 text-sm rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <span className="w-5 h-5 flex items-center justify-center">💻</span>
+              <span>Generate code</span>
+            </button>
+          </div>
+          
+          <div className="mt-4 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+            <span>Using model:</span>
+            <select 
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="bg-transparent border-none focus:outline-none"
+            >
+              <option value="auto">Auto (Based on Task)</option>
+              <option value="primary">GPT-4o</option>
+              <option value="claude">Claude</option>
+              <option value="code">Code-Specialized</option>
+            </select>
           </div>
         </div>
       </div>
