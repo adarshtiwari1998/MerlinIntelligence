@@ -48,7 +48,7 @@ export default function AIInteractionPanel({
   };
 
   return (
-    <div className="w-full md:w-2/5 flex flex-col bg-white dark:bg-gray-850 border-t border-gray-200 dark:border-gray-700 md:border-t-0">
+    <div className="w-full flex flex-col bg-white dark:bg-gray-850 border-t border-gray-200 dark:border-gray-700 md:border-t-0">
       <div className="border-b border-gray-200 dark:border-gray-700 p-3 flex items-center justify-between">
         <h3 className="font-medium">AI Agent Interaction</h3>
         <div className="flex items-center space-x-1">
