@@ -1,10 +1,11 @@
-
 import React, { useEffect, useRef } from "react";
 import { Message as MessageType } from "@shared/schema";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ThumbsUp, ThumbsDown, Clipboard, Code, FileText, Table } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { marked } from 'marked';
+import hljs from 'highlight.js';
 
 interface MessageProps {
   message: MessageType;
@@ -20,83 +21,18 @@ const LoadingAnimation = () => (
 );
 
 const parseContent = (content: string) => {
-  const blocks = [];
-  let currentBlock = '';
-  let inCodeBlock = false;
-  
-  const lines = content.split('\n');
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    
-    // Code block detection
-    if (line.startsWith('```')) {
-      if (inCodeBlock) {
-        blocks.push({ type: 'code', content: currentBlock });
-        currentBlock = '';
-      } else if (currentBlock) {
-        blocks.push({ type: 'text', content: currentBlock });
-        currentBlock = '';
-      }
-      inCodeBlock = !inCodeBlock;
-      continue;
-    }
-    
-    // List detection
-    if (!inCodeBlock && (line.startsWith('- ') || line.startsWith('* ') || /^\d+\./.test(line))) {
-      if (currentBlock && !currentBlock.match(/^[-*\d]/m)) {
-        blocks.push({ type: 'text', content: currentBlock });
-        currentBlock = '';
-      }
-      currentBlock += line + '\n';
-      if (i === lines.length - 1 || !lines[i + 1].match(/^[-*\d]/)) {
-        blocks.push({ type: 'list', content: currentBlock });
-        currentBlock = '';
-      }
-      continue;
-    }
-    
-    // Heading detection
-    if (!inCodeBlock && line.startsWith('#')) {
-      if (currentBlock) {
-        blocks.push({ type: 'text', content: currentBlock });
-        currentBlock = '';
-      }
-      const level = line.match(/^#+/)[0].length;
-      blocks.push({ type: 'heading', content: line.replace(/^#+\s/, ''), level });
-      continue;
-    }
-    
-    // Table detection
-    if (!inCodeBlock && line.includes('|') && line.includes('-|-')) {
-      if (currentBlock) {
-        blocks.push({ type: 'text', content: currentBlock });
-        currentBlock = '';
-      }
-      let tableContent = line + '\n';
-      while (i + 1 < lines.length && lines[i + 1].includes('|')) {
-        i++;
-        tableContent += lines[i] + '\n';
-      }
-      blocks.push({ type: 'table', content: tableContent });
-      continue;
-    }
-    
-    if (inCodeBlock || !line.match(/^[-*\d#]|.*\|.*-\|-/)) {
-      currentBlock += line + '\n';
-    }
-  }
-  
-  if (currentBlock) {
-    blocks.push({ type: inCodeBlock ? 'code' : 'text', content: currentBlock });
-  }
-  
-  return blocks;
+  marked.setOptions({
+    highlight: function(code, lang) {
+      return hljs.highlight(code, { language: lang }).value;
+    },
+    breaks: true,
+  });
+  return marked.parse(content);
 };
 
 const ContentBlock = ({ type, content, level }: { type: string; content: string; level?: number }) => {
   const blockRef = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
     if (blockRef.current) {
       blockRef.current.style.opacity = '0';
@@ -212,12 +148,12 @@ const ContentBlock = ({ type, content, level }: { type: string; content: string;
               const HeadingTag = `h${level}` as keyof JSX.IntrinsicElements;
               return <HeadingTag key={i} className="font-bold text-lg mb-2">{line.replace(/^#+\s/, '')}</HeadingTag>;
             }
-            
+
             // Check for list items
             if (line.startsWith('- ') || line.startsWith('* ')) {
               return <li key={i} className="ml-4 mb-2">{line.slice(2)}</li>;
             }
-            
+
             // Check for numbered list
             if (/^\d+\./.test(line)) {
               return <li key={i} className="ml-4 mb-2">{line.replace(/^\d+\.\s/, '')}</li>;
@@ -236,7 +172,7 @@ const ContentBlock = ({ type, content, level }: { type: string; content: string;
                 </p>
               );
             }
-            
+
             // Regular paragraph
             return line ? <p key={i} className="mb-2 leading-relaxed">{line}</p> : <br key={i} />;
           })}
@@ -262,7 +198,7 @@ export default function Message({ message, isLoading }: MessageProps) {
     }
   }, []);
 
-  const contentBlocks = parseContent(message.content);
+  // const contentBlocks = parseContent(message.content);
 
   return (
     <div 
@@ -302,14 +238,11 @@ export default function Message({ message, isLoading }: MessageProps) {
           {isLoading ? (
             <LoadingAnimation />
           ) : (
-            contentBlocks.map((block, index) => (
-              <ContentBlock
-                key={index}
-                type={block.type}
-                content={block.content}
-                level={block.type === 'heading' ? block.level : undefined}
-              />
-            ))
+            <div 
+            className="prose dark:prose-invert max-w-none"
+            dangerouslySetInnerHTML={{ __html: parseContent(message.content) }}
+          />
+            
           )}
         </div>
 
