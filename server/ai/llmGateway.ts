@@ -58,6 +58,28 @@ export class LLMGateway {
         this.currentProvider = 'gemini';
     }
 
+    private analyzeContext(history: Message[]): { mainTopic: string, relevantContext: string } {
+        if (!history.length) {
+            return { mainTopic: '', relevantContext: '' };
+        }
+
+        // Find the main topic from the most recent substantial discussion
+        const mainTopic = history
+            .filter(msg => msg.role === "assistant" && msg.content.length > 50)
+            .pop()?.content.split('\n')[0] || '';
+
+        // Extract relevant context from the conversation
+        const relevantMessages = history
+            .slice(-3)
+            .map(msg => `${msg.role}: ${msg.content}`)
+            .join('\n');
+
+        return {
+            mainTopic,
+            relevantContext: relevantMessages
+        };
+    }
+
     public static async create(): Promise<LLMGateway> {
         const gateway = await LLMGateway.initialize();
         console.log("Available providers:", gateway.availableProviders);
@@ -109,12 +131,46 @@ export class LLMGateway {
                         console.error("Gemini model is undefined or null!");
                         throw new Error("Gemini model not initialized");
                     }
-                    // Build conversation history
+                    // Build conversation history with better context management
                     const history = request.context?.history || [];
-                    const messages = history.map(msg => ({ text: msg.content }));
+                    const recentHistory = history.slice(-5); // Keep last 5 messages for context
                     
-                    // Enhance prompt based on context and request type
-                    let enhancedPrompt = request.prompt;
+                    // Create a structured context from conversation history
+                    const conversationContext = recentHistory.map(msg => ({
+                        role: msg.role,
+                        content: msg.content,
+                        timestamp: msg.timestamp
+                    }));
+
+                    // Extract the last topic discussed
+                    const lastContext = recentHistory
+                        .filter(msg => msg.role === "assistant")
+                        .pop()?.content || '';
+
+                    // Build enhanced prompt with context
+                    let enhancedPrompt = '';
+                    
+                    // If this is a follow-up question, include context
+                    if (recentHistory.length > 0) {
+                        enhancedPrompt = `Based on our previous conversation about:\n\n${lastContext}\n\nAnd with this history:\n${recentHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}\n\nPlease answer this follow-up question: ${request.prompt}`;
+                    } else {
+                        enhancedPrompt = request.prompt;
+                    }
+
+                    // Special handling for different types of requests
+                    if (request.prompt.toLowerCase().includes('flowchart') || 
+                        request.prompt.toLowerCase().includes('diagram')) {
+                        enhancedPrompt = `Based on our previous discussion about:\n\n${lastContext}\n\nCreate a detailed Mermaid diagram that illustrates this concept. Use this format:\n\`\`\`mermaid\nflowchart TD\n    // Create a detailed flowchart about the previously discussed topic\n\`\`\``;
+                    }
+
+                    // Convert history to Gemini format with enhanced context
+                    const messages = conversationContext.map(msg => ({
+                        text: msg.content,
+                        role: msg.role === "assistant" ? "model" : "user"
+                    }));
+                    
+                    // Add the enhanced prompt as the final message
+                    messages.push({ text: enhancedPrompt });
                     if (request.prompt.toLowerCase().includes('flowchart') || 
                         request.prompt.toLowerCase().includes('diagram')) {
                         
