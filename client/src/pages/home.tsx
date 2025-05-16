@@ -10,6 +10,7 @@ export default function Home() {
   const [selectedModel, setSelectedModel] = useState<string>("auto");
   const [selectedTaskType, setSelectedTaskType] = useState<TaskType>("code_generation");
   
+  const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -105,6 +106,7 @@ gateway = LLMGateway()`,
 
   const sendMessage = async (content: string) => {
     if (!content.trim()) return;
+    setInputValue("");
 
     // Add user message
     const userMessage: Message = {
