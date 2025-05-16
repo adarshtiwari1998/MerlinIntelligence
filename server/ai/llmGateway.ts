@@ -23,14 +23,7 @@ export class LLMGateway {
 
   private static async initialize(): Promise<LLMGateway> {
     const gateway = new LLMGateway();
-
-    // Initialize Anthropic client and check if API key is valid
-    const anthropicKey = process.env.ANTHROPIC_API_KEY;
-    if (anthropicKey && anthropicKey !== "sk-ant-dummy-key-for-dev") {
-      gateway.anthropic = new Anthropic({ apiKey: anthropicKey });
-      gateway.availableProviders.push("anthropic");
-    }
-
+    
     // Initialize Gemini client if API key is available
     const geminiKey = process.env.GEMINI_API_KEY;
     if (!geminiKey) {
@@ -42,7 +35,8 @@ export class LLMGateway {
       const genAI = new GoogleGenerativeAI(geminiKey);
       gateway.gemini = genAI;
       gateway.model = genAI.getGenerativeModel({ model: "gemini-pro" });
-      gateway.availableProviders.push("gemini");
+      gateway.availableProviders = ['gemini'];
+      gateway.currentProvider = 'gemini';
       console.log("Gemini API key detected and initialized successfully");
     } catch (error) {
       console.error("Failed to initialize Gemini:", error);
