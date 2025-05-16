@@ -102,7 +102,36 @@ export class LLMGateway {
      * Routes the request to the appropriate model based on request type
      */
     async routeRequest(request: ModelRequest): Promise<ModelResponse> {
-        console.log(`Routing request of type \${request.modelType}:`, request.prompt.slice(0, 50) + "...");
+        console.log(`Routing request of type ${request.modelType}:`, request.prompt.slice(0, 50) + "...");
+
+        // Enhanced context management
+        const context = request.context || {};
+        const conversationContext = context.conversationContext || [];
+        const history = context.history || [];
+
+        // Analyze request type and adjust prompt
+        const requiresVisual = request.prompt.toLowerCase().includes('flowchart') || 
+                             request.prompt.toLowerCase().includes('diagram');
+        const isFollowUp = context.isFollowUp || false;
+
+        // Build enhanced prompt
+        let enhancedPrompt = request.prompt;
+        if (isFollowUp && history.length > 0) {
+            const previousContext = history
+                .filter(msg => msg.role === "assistant")
+                .map(msg => msg.content)
+                .join("\n");
+
+            enhancedPrompt = `Based on our previous discussion about:\n${previousContext}\n\nFollow-up request: ${request.prompt}`;
+
+            if (requiresVisual) {
+                enhancedPrompt += "\n\nPlease create a clear and well-structured diagram using Mermaid syntax.";
+            }
+        }
+
+        request.prompt = enhancedPrompt;
+        console.log("Enhanced prompt:", request.prompt);
+
         console.log("Current value of this.model:", this.model);
 
         // Check cache first

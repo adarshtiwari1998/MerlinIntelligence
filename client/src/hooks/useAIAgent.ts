@@ -2,6 +2,47 @@ import { useState } from "react";
 import { Message, ModelRequest, ModelResponse } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
+
+// Helper functions for context analysis
+function extractConcepts(text: string): string[] {
+  const conceptPatterns = [
+    /\b(api|interface|service|endpoint|request|response)\b/gi,
+    /\b(flow|process|diagram|flowchart|architecture)\b/gi,
+    /\b(data|model|schema|structure)\b/gi
+  ];
+  
+  return Array.from(new Set(
+    conceptPatterns.flatMap(pattern => 
+      text.match(pattern) || []
+    ).map(match => match.toLowerCase())
+  ));
+}
+
+function isFollowUpQuestion(prompt: string, previousContent?: string): boolean {
+  if (!previousContent) return false;
+  
+  const followUpIndicators = [
+    /\b(it|this|that|these|those)\b/i,
+    /\b(how|why|what|when|where)\b.*\?/i,
+    /\b(can you|could you)\b/i,
+    /\b(explain|elaborate|clarify)\b/i
+  ];
+  
+  return followUpIndicators.some(pattern => pattern.test(prompt)) ||
+         prompt.length < 20 || // Short questions are often follow-ups
+         hasSimilarConcepts(prompt, previousContent);
+}
+
+function hasSimilarConcepts(prompt: string, previousContent: string): boolean {
+  const promptConcepts = extractConcepts(prompt);
+  const previousConcepts = extractConcepts(previousContent);
+  return promptConcepts.some(concept => previousConcepts.includes(concept));
+}
+
+function needsVisualResponse(prompt: string): boolean {
+  return /\b(diagram|flowchart|chart|graph|visualization)\b/i.test(prompt);
+}
+
 export function useAIAgent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -9,8 +50,24 @@ export function useAIAgent() {
   const sendMessage = async (request: ModelRequest): Promise<ModelResponse | null> => {
     setIsLoading(true);
     
-    // Enhanced context handling with better follow-up detection
+    // Maintain conversation context with improved history tracking
     const recentMessages = messages.slice(-10);
+    const currentTopic = recentMessages
+      .filter(msg => msg.role === "assistant" && msg.content.length > 100)
+      .map(msg => ({
+        content: msg.content,
+        timestamp: msg.timestamp,
+        concepts: extractConcepts(msg.content)
+      }))
+      .pop();
+      
+    // Enhanced context analysis
+    const contextAnalysis = {
+      mainConcepts: currentTopic?.concepts || [],
+      isFollowUp: isFollowUpQuestion(request.prompt, currentTopic?.content),
+      lastQuery: messages[messages.length - 1]?.content,
+      requiresVisualResponse: needsVisualResponse(request.prompt)
+    };
     
     // Extract main topic and key concepts
     const mainTopic = recentMessages
