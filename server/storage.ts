@@ -106,5 +106,80 @@ export class MemStorage implements IStorage {
   }
 }
 
+// Database storage implementation
+import { db } from "./db";
+import { users, aiRequests, aiResponses } from "@shared/schema";
+import { eq } from "drizzle-orm";
+
+export class DatabaseStorage implements IStorage {
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+  
+  // AI Request operations
+  async getAIRequest(id: number): Promise<AiRequest | undefined> {
+    const [request] = await db.select().from(aiRequests).where(eq(aiRequests.id, id));
+    return request || undefined;
+  }
+  
+  async getAIRequestsByUserId(userId: number): Promise<AiRequest[]> {
+    return await db.select().from(aiRequests).where(eq(aiRequests.userId, userId));
+  }
+  
+  async createAIRequest(insertRequest: InsertAiRequest): Promise<AiRequest> {
+    const [request] = await db
+      .insert(aiRequests)
+      .values({
+        ...insertRequest,
+        userId: insertRequest.userId || null,
+        maxTokens: insertRequest.maxTokens || null,
+        temperature: insertRequest.temperature || null,
+        createdAt: new Date()
+      })
+      .returning();
+    return request;
+  }
+  
+  // AI Response operations
+  async getAIResponse(id: number): Promise<AiResponse | undefined> {
+    const [response] = await db.select().from(aiResponses).where(eq(aiResponses.id, id));
+    return response || undefined;
+  }
+  
+  async getAIResponseByRequestId(requestId: number): Promise<AiResponse | undefined> {
+    const [response] = await db.select().from(aiResponses).where(eq(aiResponses.requestId, requestId));
+    return response || undefined;
+  }
+  
+  async createAIResponse(insertResponse: InsertAiResponse): Promise<AiResponse> {
+    const [response] = await db
+      .insert(aiResponses)
+      .values({
+        ...insertResponse,
+        requestId: insertResponse.requestId || null,
+        tokensUsed: insertResponse.tokensUsed || null,
+        latencyMs: insertResponse.latencyMs || null,
+        createdAt: new Date()
+      })
+      .returning();
+    return response;
+  }
+}
+
 // Create and export storage instance
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

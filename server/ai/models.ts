@@ -6,6 +6,14 @@ export const PRIMARY_MODEL = "gpt-4o";
 export const CODE_MODEL = "gpt-4o"; // In a production environment, this could be a specialized code model
 export const EMBEDDINGS_MODEL = "text-embedding-3-small";
 
+// Anthropic model names
+// the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
+export const ANTHROPIC_PRIMARY_MODEL = "claude-3-7-sonnet-20250219";
+export const ANTHROPIC_CODE_MODEL = "claude-3-7-sonnet-20250219";
+
+// Model providers
+export type ModelProvider = "openai" | "anthropic";
+
 // Compute an MD5 hash for caching
 export function computeHash(input: string): string {
   return crypto.createHash("md5").update(input).digest("hex");
