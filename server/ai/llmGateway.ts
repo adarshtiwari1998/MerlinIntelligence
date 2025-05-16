@@ -32,12 +32,19 @@ export class LLMGateway {
     
     // Initialize Gemini client if API key is available
     const geminiKey = process.env.GEMINI_API_KEY;
-    if (geminiKey) {
+    if (!geminiKey) {
+      throw new Error("GEMINI_API_KEY is required but not found in environment variables");
+    }
+    
+    try {
       const { GoogleGenerativeAI } = await import("@google/generative-ai");
       const genAI = new GoogleGenerativeAI(geminiKey);
       gateway.gemini = genAI.getGenerativeModel({ model: "gemini-pro" });
       gateway.availableProviders.push("gemini");
-      console.log("Gemini API key detected and initialized");
+      console.log("Gemini API key detected and initialized successfully");
+    } catch (error) {
+      console.error("Failed to initialize Gemini:", error);
+      throw new Error("Failed to initialize Gemini client");
     }
     
     return gateway;
