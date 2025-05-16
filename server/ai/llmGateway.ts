@@ -54,23 +54,13 @@ export class LLMGateway {
 
   private constructor() {
     this.cache = new AICache();
+    this.availableProviders = [];
+    this.currentProvider = 'gemini';
   }
 
   public static async create(): Promise<LLMGateway> {
     const gateway = await LLMGateway.initialize();
-
-    // Set Gemini as the only provider
-    const geminiKey = process.env.GEMINI_API_KEY;
-    if (!geminiKey) {
-      throw new Error("Gemini API key not configured. Please set up GEMINI_API_KEY in your environment variables");
-    }
-
-    gateway.availableProviders = ['gemini'];
-    gateway.currentProvider = 'gemini';
-
     console.log("Available providers:", gateway.availableProviders);
-    console.log("LLM Gateway initialized with OpenAI, Anthropic, and Gemini support");
-
     return gateway;
   }
 
@@ -114,7 +104,10 @@ export class LLMGateway {
       // Route to appropriate model based on type and provider
       if (provider === "gemini") {
         try {
-          const result = await this.model.generateContent(request.prompt);
+          if (!this.model) {
+            throw new Error("Gemini model not initialized");
+          }
+          const result = await this.model.generateContent([{ text: request.prompt }]);
           const response = await result.response;
           return {
             text: response.text(),
