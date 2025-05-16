@@ -54,16 +54,32 @@ export class LLMGateway {
     let response: ModelResponse;
     
     try {
-      // Route to appropriate model
-      switch (request.modelType) {
-        case "code":
-          response = await this.callCodeModel(request);
-          break;
-        case "embeddings":
-          response = await this.callEmbeddingsModel(request);
-          break;
-        default:
-          response = await this.callPrimaryModel(request);
+      // Determine provider based on request or settings
+      // By default, we'll use OpenAI, but this could be configured by the user
+      const provider: ModelProvider = request.context?.provider as ModelProvider || "openai";
+      console.log(`Using provider: ${provider}`);
+      
+      // Route to appropriate model based on type and provider
+      if (provider === "anthropic") {
+        switch (request.modelType) {
+          case "code":
+            response = await this.callAnthropicCodeModel(request);
+            break;
+          default:
+            response = await this.callAnthropicPrimaryModel(request);
+        }
+      } else {
+        // Default to OpenAI
+        switch (request.modelType) {
+          case "code":
+            response = await this.callCodeModel(request);
+            break;
+          case "embeddings":
+            response = await this.callEmbeddingsModel(request);
+            break;
+          default:
+            response = await this.callPrimaryModel(request);
+        }
       }
       
       // Calculate latency
@@ -77,13 +93,26 @@ export class LLMGateway {
     } catch (error) {
       console.error(`Error in ${request.modelType} model:`, error);
       
-      // If code model fails, try falling back to primary
-      if (request.modelType === "code") {
-        console.log("Falling back to primary model");
-        return this.callPrimaryModel(request);
+      // If model fails, try falling back to OpenAI primary model
+      if (request.modelType === "code" || request.context?.provider === "anthropic") {
+        console.log("Falling back to OpenAI primary model");
+        try {
+          response = await this.callPrimaryModel(request);
+          const latencyMs = Date.now() - startTime;
+          response.latencyMs = latencyMs;
+          return response;
+        } catch (fallbackError) {
+          console.error("Fallback to primary model also failed:", fallbackError);
+        }
       }
       
-      throw error;
+      // Return graceful error instead of throwing
+      return {
+        text: "I apologize, but I encountered an error processing your request. This could be due to API limits, connectivity issues, or other technical problems. Please try again or try using a different model provider.",
+        modelUsed: "error",
+        tokensUsed: 0,
+        latencyMs: Date.now() - startTime
+      };
     }
   }
   
@@ -259,17 +288,146 @@ export class LLMGateway {
   }
   
   /**
+   * Calls the Anthropic Claude model for primary tasks
+   */
+  private async callAnthropicPrimaryModel(request: ModelRequest): Promise<ModelResponse> {
+    try {
+      console.log("Calling Anthropic Claude model for primary task");
+      
+      // Build system prompt to handle various questions
+      const systemPrompt = "You are Claude, a versatile AI assistant that can help with a wide range of tasks including answering questions, explaining concepts, analyzing text, and providing thoughtful responses. Be helpful, accurate, and concise.";
+      
+      const completion = await this.anthropic.messages.create({
+        model: ANTHROPIC_PRIMARY_MODEL,
+        max_tokens: request.maxTokens,
+        system: systemPrompt,
+        messages: [
+          {
+            role: "user",
+            content: request.prompt
+          }
+        ],
+        temperature: request.temperature,
+      });
+      
+      // Extract the response text properly handling Anthropic's response format
+      let responseText = "I couldn't generate a response";
+      
+      // Check if we have content and it's a text block
+      if (completion.content && 
+          completion.content.length > 0 && 
+          completion.content[0].type === 'text') {
+        responseText = completion.content[0].text;
+      }
+      
+      return {
+        text: responseText,
+        modelUsed: ANTHROPIC_PRIMARY_MODEL,
+        tokensUsed: completion.usage?.output_tokens || 0,
+        latencyMs: 0 // Will be set by the caller
+      };
+    } catch (error) {
+      console.error("Error calling Anthropic Claude model:", error);
+      
+      // Create a more helpful error response
+      return {
+        text: "I apologize, but I encountered an error while processing your request with the Claude model. This could be due to API limits, connectivity issues, or other technical problems. Please try again or switch to a different model.",
+        modelUsed: "error",
+        tokensUsed: 0,
+        latencyMs: 0
+      };
+    }
+  }
+
+  /**
+   * Calls the Anthropic Claude model for code-related tasks
+   */
+  private async callAnthropicCodeModel(request: ModelRequest): Promise<ModelResponse> {
+    try {
+      console.log("Calling Anthropic Claude model for code task");
+      
+      // Build system prompt for code-related tasks
+      let systemPrompt = "You are Claude, an AI assistant specialized in programming and software development. ";
+      
+      if (request.context?.taskType === "code_completion") {
+        systemPrompt += "Complete the code snippet with the most logical continuation. Focus on correctness, efficiency, and best practices.";
+      } else if (request.context?.taskType === "code_generation") {
+        systemPrompt += "Generate well-structured, efficient code based on the requirements. Include helpful comments to explain key parts.";
+      } else if (request.context?.taskType === "code_explanation") {
+        systemPrompt += "Explain the provided code clearly, focusing on its purpose, algorithm, and important concepts. Break down complex parts into simple explanations.";
+      } else {
+        systemPrompt += "Provide expert programming assistance based on the user's request.";
+      }
+      
+      // Add the code context if provided
+      let userPrompt = request.prompt;
+      if (request.context?.code) {
+        userPrompt = `Code context:\n\`\`\`\n${request.context.code}\n\`\`\`\n\nRequest: ${request.prompt}`;
+      }
+      
+      const completion = await this.anthropic.messages.create({
+        model: ANTHROPIC_CODE_MODEL,
+        system: systemPrompt,
+        max_tokens: request.maxTokens,
+        messages: [
+          {
+            role: "user",
+            content: userPrompt
+          }
+        ],
+        temperature: request.temperature,
+      });
+      
+      // Extract the response text properly handling Anthropic's response format
+      let responseText = "I couldn't generate code for that request";
+      
+      // Check if we have content and it's a text block
+      if (completion.content && 
+          completion.content.length > 0 && 
+          completion.content[0].type === 'text') {
+        responseText = completion.content[0].text;
+      }
+      
+      return {
+        text: responseText,
+        modelUsed: ANTHROPIC_CODE_MODEL,
+        tokensUsed: completion.usage?.output_tokens || 0,
+        latencyMs: 0 // Will be set by the caller
+      };
+    } catch (error) {
+      console.error("Error calling Anthropic Claude code model:", error);
+      
+      // Create a more helpful error response
+      return {
+        text: "I apologize, but I encountered an error while processing your code request with the Claude model. This could be due to API limits, connectivity issues, or other technical problems. Please try again or switch to a different model.",
+        modelUsed: "error",
+        tokensUsed: 0,
+        latencyMs: 0
+      };
+    }
+  }
+
+  /**
    * Gets the status of all connected models
    */
-  async getStatus(): Promise<{ primary: boolean; code: boolean; embeddings: boolean }> {
-    // In a real implementation, you would check the actual status of each model
-    // Here we'll simulate by just checking if we have an API key
-    const hasApiKey = !!this.openai.apiKey && this.openai.apiKey !== "sk-dummy-key-for-dev";
-    
-    return {
-      primary: hasApiKey,
-      code: hasApiKey,
-      embeddings: hasApiKey
+  async getStatus(): Promise<{ primary: boolean; code: boolean; embeddings: boolean; anthropic: boolean }> {
+    const status = {
+      primary: false,
+      code: false,
+      embeddings: false,
+      anthropic: false
     };
+    
+    // Check OpenAI connection
+    const hasOpenAIKey = !!this.openai.apiKey && this.openai.apiKey !== "sk-dummy-key-for-dev";
+    status.primary = hasOpenAIKey;
+    status.code = hasOpenAIKey;
+    status.embeddings = hasOpenAIKey;
+    
+    // Check Anthropic connection
+    const hasAnthropicKey = !!this.anthropic.apiKey && this.anthropic.apiKey !== "sk-ant-dummy-key-for-dev";
+    status.anthropic = hasAnthropicKey;
+    
+    return status;
   }
 }
