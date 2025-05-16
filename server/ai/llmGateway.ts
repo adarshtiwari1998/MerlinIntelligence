@@ -58,17 +58,14 @@ export class LLMGateway {
   public static async create(): Promise<LLMGateway> {
     const gateway = await LLMGateway.initialize();
     
-    // Remove OpenAI from available providers
-    gateway.availableProviders = gateway.availableProviders.filter(p => p !== 'openai');
-    
-    // Set Gemini as the default provider if available, otherwise try Anthropic
-    if (gateway.availableProviders.includes('gemini')) {
-      gateway.currentProvider = 'gemini';
-    } else if (gateway.availableProviders.includes('anthropic')) {
-      gateway.currentProvider = 'anthropic';
-    } else {
-      throw new Error("No Gemini or Anthropic API keys configured. Please set up GEMINI_API_KEY or ANTHROPIC_API_KEY");
+    // Set Gemini as the only provider
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!geminiKey) {
+      throw new Error("Gemini API key not configured. Please set up GEMINI_API_KEY in your environment variables");
     }
+
+    gateway.availableProviders = ['gemini'];
+    gateway.currentProvider = 'gemini';
     
     console.log("Available providers:", gateway.availableProviders);
     console.log("LLM Gateway initialized with OpenAI, Anthropic, and Gemini support");
