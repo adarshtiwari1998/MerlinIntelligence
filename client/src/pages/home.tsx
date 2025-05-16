@@ -175,9 +175,9 @@ gateway = LLMGateway()`,
     <MainLayout>
       <div className="flex-1 flex flex-col items-center justify-center overflow-hidden bg-gray-50 dark:bg-gray-900 p-4">
         <div className="w-full max-w-3xl flex flex-col items-center">
-          <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-6">Welcome to AI Agent</h1>
+          <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-6">Welcome to Merlin</h1>
           
-          {messages.length > 0 ? (
+          {messages.length > 1 ? (
             <div className="w-full bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6 overflow-y-auto max-h-[60vh]">
               {messages.map((message) => (
                 <div key={message.id} className="p-4 border-b border-gray-100 dark:border-gray-700">
@@ -201,58 +201,86 @@ gateway = LLMGateway()`,
           ) : null}
           
           <div className="w-full relative">
-            <textarea
-              placeholder="Type your prompt here"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage(inputValue);
-                }
-              }}
-              className="w-full p-4 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows={2}
-            />
-            <button
-              onClick={() => sendMessage(inputValue)}
-              disabled={isLoading || !inputValue.trim()}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300 disabled:text-gray-500 transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-              </svg>
-            </button>
+            <div className="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 overflow-hidden shadow-sm">
+              <textarea
+                placeholder="Type your prompt here"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage(inputValue);
+                  }
+                }}
+                className="w-full p-4 pr-12 border-0 bg-transparent text-gray-800 dark:text-gray-200 focus:outline-none resize-none min-h-[60px]"
+                rows={2}
+              />
+              <div className="flex items-center justify-between px-3 py-2 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center space-x-2">
+                  <button className="p-1.5 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                  </button>
+                  <button className="p-1.5 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                      <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                  </button>
+                </div>
+                
+                <div className="flex items-center">
+                  <select 
+                    value={selectedModel}
+                    onChange={(e) => setSelectedModel(e.target.value)}
+                    className="mr-2 text-xs bg-transparent text-gray-500 border-none focus:outline-none"
+                  >
+                    <option value="auto">Gemini 2.0 Flash</option>
+                    <option value="primary">GPT-4o</option>
+                    <option value="code">Claude (Code)</option>
+                  </select>
+                  
+                  <button
+                    onClick={() => sendMessage(inputValue)}
+                    disabled={isLoading || !inputValue.trim()}
+                    className="p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300 disabled:text-gray-500 transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
           
-          <div className="flex flex-wrap justify-center gap-2 mt-6">
-            <button className="flex items-center gap-2 px-4 py-2 text-sm rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-              <span className="w-5 h-5 flex items-center justify-center">📊</span>
-              <span>Analyze data</span>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-6 w-full">
+            <button className="flex items-center justify-center gap-2 px-4 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <span className="w-5 h-5 flex items-center justify-center">🔍</span>
+              <span>Get deep research insights</span>
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 text-sm rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <button className="flex items-center justify-center gap-2 px-4 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
               <span className="w-5 h-5 flex items-center justify-center">🌐</span>
               <span>Research with web</span>
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 text-sm rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-              <span className="w-5 h-5 flex items-center justify-center">💻</span>
-              <span>Generate code</span>
+            <button className="flex items-center justify-center gap-2 px-4 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <span className="w-5 h-5 flex items-center justify-center">💬</span>
+              <span>Chat with documents</span>
             </button>
-          </div>
-          
-          <div className="mt-4 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-            <span>Using model:</span>
-            <select 
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              className="bg-transparent border-none focus:outline-none"
-            >
-              <option value="auto">Auto (Based on Task)</option>
-              <option value="primary">GPT-4o</option>
-              <option value="claude">Claude</option>
-              <option value="code">Code-Specialized</option>
-            </select>
+            <button className="flex items-center justify-center gap-2 px-4 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <span className="w-5 h-5 flex items-center justify-center">📊</span>
+              <span>Make charts and diagrams</span>
+            </button>
+            <button className="flex items-center justify-center gap-2 px-4 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <span className="w-5 h-5 flex items-center justify-center">📈</span>
+              <span>Analyze data</span>
+            </button>
+            <button className="flex items-center justify-center gap-2 px-4 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <span className="w-5 h-5 flex items-center justify-center">🖼️</span>
+              <span>Generate image</span>
+            </button>
           </div>
         </div>
       </div>
