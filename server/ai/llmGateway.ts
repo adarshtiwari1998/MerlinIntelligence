@@ -39,13 +39,17 @@ export class LLMGateway {
     // Initialize Gemini client if API key is available
     const geminiKey = process.env.GEMINI_API_KEY;
     if (geminiKey) {
-      // Initialize Gemini client here
+      const { GoogleGenerativeAI } = require("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(geminiKey);
+      this.gemini = genAI.getGenerativeModel({ model: "gemini-pro" });
       this.availableProviders.push("gemini");
-      console.log("Gemini API key detected");
+      console.log("Gemini API key detected and initialized");
     }
     
-    // Set initial provider based on available APIs
-    if (this.availableProviders.length > 0) {
+    // Set Gemini as the default provider if available
+    if (this.availableProviders.includes('gemini')) {
+      this.currentProvider = 'gemini';
+    } else if (this.availableProviders.length > 0) {
       this.currentProvider = this.availableProviders[0];
     }
     
@@ -91,11 +95,20 @@ export class LLMGateway {
     try {
       // Determine provider based on request or settings
       // By default, we'll use OpenAI, but this could be configured by the user
-      const provider: ModelProvider = request.context?.provider as ModelProvider || "openai";
+      const provider: ModelProvider = request.context?.provider as ModelProvider || this.currentProvider;
       console.log(`Using provider: ${provider}`);
       
       // Route to appropriate model based on type and provider
-      if (provider === "anthropic") {
+      if (provider === "gemini") {
+        const result = await this.gemini.generateContent(request.prompt);
+        const response = await result.response;
+        return {
+          text: response.text(),
+          modelUsed: "gemini-pro",
+          tokensUsed: 0, // Gemini doesn't provide token count
+          latencyMs: 0
+        };
+      } else if (provider === "anthropic") {
         switch (request.modelType) {
           case "code":
             response = await this.callAnthropicCodeModel(request);
