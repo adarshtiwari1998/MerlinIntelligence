@@ -11,10 +11,15 @@ interface MessageProps {
 }
 
 const LoadingAnimation = () => (
-  <div className="flex space-x-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
-    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '600ms' }}></div>
+  <div className="flex flex-col space-y-4 animate-pulse">
+    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6"></div>
+    <div className="space-y-2">
+      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded"></div>
+      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-11/12"></div>
+      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-4/5"></div>
+    </div>
   </div>
 );
 
@@ -47,8 +52,19 @@ export default function Message({ message, isLoading }: MessageProps) {
         const code = codeMatch?.[2] || '';
 
         return (
-          <pre key={index} className="bg-gray-200 dark:bg-gray-700 p-2 rounded-md mt-2 overflow-x-auto text-xs">
-            {code}
+          <pre key={index} className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg mt-3 overflow-x-auto text-sm font-mono border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex items-center justify-between mb-2 text-xs text-gray-500 dark:text-gray-400">
+              <span>{language || 'code'}</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-6 w-6 p-0" 
+                onClick={() => copyToClipboard(code)}
+              >
+                <Clipboard className="h-3 w-3" />
+              </Button>
+            </div>
+            <code className="text-gray-800 dark:text-gray-200">{code}</code>
           </pre>
         );
       }
@@ -68,14 +84,14 @@ export default function Message({ message, isLoading }: MessageProps) {
   };
 
   return (
-    <div className="flex items-start space-x-3">
+    <div className={`flex items-start space-x-3 p-4 ${isUser ? '' : 'bg-gray-50 dark:bg-gray-800/50'}`}>
       {isUser ? (
-        <Avatar className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0 text-blue-700 dark:text-blue-300">
-          <AvatarFallback>JS</AvatarFallback>
+        <Avatar className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0 text-white shadow-lg">
+          <AvatarFallback>U</AvatarFallback>
         </Avatar>
       ) : (
-        <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
-          <svg className="h-4 w-4 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+          <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
         </div>
