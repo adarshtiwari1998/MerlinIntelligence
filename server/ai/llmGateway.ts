@@ -21,19 +21,21 @@ export class LLMGateway {
   private currentProvider: ModelProvider = "openai";
   private availableProviders: ModelProvider[] = [];
   
-  constructor() {
+  private static async initialize(): Promise<LLMGateway> {
+    const gateway = new LLMGateway();
+    
     // Initialize OpenAI client and check if API key is valid
     const openaiKey = process.env.OPENAI_API_KEY;
     if (openaiKey && openaiKey !== "sk-dummy-key-for-dev") {
-      this.openai = new OpenAI({ apiKey: openaiKey });
-      this.availableProviders.push("openai");
+      gateway.openai = new OpenAI({ apiKey: openaiKey });
+      gateway.availableProviders.push("openai");
     }
     
     // Initialize Anthropic client and check if API key is valid
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
     if (anthropicKey && anthropicKey !== "sk-ant-dummy-key-for-dev") {
-      this.anthropic = new Anthropic({ apiKey: anthropicKey });
-      this.availableProviders.push("anthropic");
+      gateway.anthropic = new Anthropic({ apiKey: anthropicKey });
+      gateway.availableProviders.push("anthropic");
     }
     
     // Initialize Gemini client if API key is available
@@ -41,10 +43,21 @@ export class LLMGateway {
     if (geminiKey) {
       const { GoogleGenerativeAI } = await import("@google/generative-ai");
       const genAI = new GoogleGenerativeAI(geminiKey);
-      this.gemini = genAI.getGenerativeModel({ model: "gemini-pro" });
-      this.availableProviders.push("gemini");
+      gateway.gemini = genAI.getGenerativeModel({ model: "gemini-pro" });
+      gateway.availableProviders.push("gemini");
       console.log("Gemini API key detected and initialized");
     }
+    
+    return gateway;
+  }
+  
+  private constructor() {
+    this.cache = new AICache();
+  }
+  
+  public static async create(): Promise<LLMGateway> {
+    return LLMGateway.initialize();
+  }
     
     // Set Gemini as the default provider if available
     if (this.availableProviders.includes('gemini')) {
