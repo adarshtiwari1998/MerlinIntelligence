@@ -84,7 +84,7 @@ export default function Message({ message, isLoading }: MessageProps) {
   };
 
   return (
-    <div className={`flex items-start space-x-3 p-4 ${isUser ? '' : 'bg-gray-50 dark:bg-gray-800/50'}`}>
+    <div className={`flex items-start space-x-3 p-4 ${isUser ? '' : 'bg-gray-50 dark:bg-gray-800/50'} animate-fadeIn`}>
       {isUser ? (
         <Avatar className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0 text-white shadow-lg">
           <AvatarFallback>U</AvatarFallback>

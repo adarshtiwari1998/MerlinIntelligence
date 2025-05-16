@@ -24,8 +24,21 @@ export default function AIInteractionPanel({
 
   // Auto scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    const scrollToBottom = () => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ 
+          behavior: "smooth",
+          block: "end"
+        });
+      }
+    };
+    
+    // Scroll immediately and after a short delay to handle content loading
+    scrollToBottom();
+    const timeoutId = setTimeout(scrollToBottom, 100);
+    
+    return () => clearTimeout(timeoutId);
+  }, [messages, isLoading]);
 
   const handleSendMessage = async () => {
     if (inputValue.trim() && !isLoading) {
@@ -85,7 +98,7 @@ export default function AIInteractionPanel({
               onKeyDown={handleKeyDown}
               rows={2}
               className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              placeholder="Ask me anything about coding, text analysis, or general questions..."
+              placeholder="Message AI Assistant..."
               disabled={isLoading}
             />
             <div className="absolute bottom-2 right-2 flex items-center space-x-1 text-gray-400">

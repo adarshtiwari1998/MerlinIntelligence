@@ -4,6 +4,41 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.messages-container {
+  scroll-behavior: smooth;
+  overflow-y: auto;
+  height: calc(100vh - 200px);
+}
+
+.message-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.code-block {
+  background: #1e1e1e;
+  border-radius: 6px;
+  padding: 1rem;
+  margin: 0.5rem 0;
+  position: relative;
+}
+
+.code-block pre {
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+}
+
+.code-block code {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
 .message-enter {
   animation: fadeIn 0.3s ease-out forwards;
 }
