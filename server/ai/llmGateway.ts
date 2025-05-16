@@ -56,22 +56,19 @@ export class LLMGateway {
   }
   
   public static async create(): Promise<LLMGateway> {
-    return LLMGateway.initialize();
-  }
+    const gateway = await LLMGateway.initialize();
     
     // Set Gemini as the default provider if available
-    if (this.availableProviders.includes('gemini')) {
-      this.currentProvider = 'gemini';
-    } else if (this.availableProviders.length > 0) {
-      this.currentProvider = this.availableProviders[0];
+    if (gateway.availableProviders.includes('gemini')) {
+      gateway.currentProvider = 'gemini';
+    } else if (gateway.availableProviders.length > 0) {
+      gateway.currentProvider = gateway.availableProviders[0];
     }
     
-    console.log("Available providers:", this.availableProviders);
-    
-    // Initialize cache for responses
-    this.cache = new AICache();
-    
+    console.log("Available providers:", gateway.availableProviders);
     console.log("LLM Gateway initialized with OpenAI, Anthropic, and Gemini support");
+    
+    return gateway;
   }
   
   private async tryNextProvider() {
