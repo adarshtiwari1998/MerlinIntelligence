@@ -17,6 +17,7 @@ export class LLMGateway {
   private cache: AICache;
 
   private gemini: any; // Add proper type when implementing
+  private model: any; // Store the generative model instance
   private currentProvider: ModelProvider = "gemini";
   private availableProviders: ModelProvider[] = [];
 
@@ -38,7 +39,9 @@ export class LLMGateway {
 
     try {
       const { GoogleGenerativeAI } = await import("@google/generative-ai");
-      gateway.gemini = new GoogleGenerativeAI(geminiKey);
+      const genAI = new GoogleGenerativeAI(geminiKey);
+      gateway.gemini = genAI;
+      gateway.model = genAI.getGenerativeModel({ model: "gemini-pro" });
       gateway.availableProviders.push("gemini");
       console.log("Gemini API key detected and initialized successfully");
     } catch (error) {
@@ -111,10 +114,10 @@ export class LLMGateway {
       // Route to appropriate model based on type and provider
       if (provider === "gemini") {
         try {
-          const model = this.gemini.getGenerativeModel({ model: "gemini-pro" });
-          const result = await model.generateContent(request.prompt);
+          const result = await this.model.generateContent(request.prompt);
+          const response = await result.response;
           return {
-            text: result.response.text(),
+            text: response.text(),
             modelUsed: "gemini-pro",
             tokensUsed: 0, // Gemini doesn't provide token count
             latencyMs: 0
