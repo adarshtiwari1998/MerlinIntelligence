@@ -1,3 +1,4 @@
+// model.ts
 import crypto from "crypto";
 
 // OpenAI model names
@@ -32,22 +33,22 @@ export function determineModelType(taskType: string): "primary" | "code" | "embe
 // Format prompt based on task type
 export function formatPrompt(taskType: string, rawPrompt: string, context?: any): string {
   let formattedPrompt = rawPrompt;
-  
+
   switch (taskType) {
     case "code_completion":
-      formattedPrompt = `Complete the following code:\n\n${context?.code || ""}\n\n${rawPrompt}`;
+      formattedPrompt = `Complete the following code:\n\n\${context?.code || ""}\n\n\${rawPrompt}`;
       break;
     case "code_generation":
-      formattedPrompt = `Generate code for the following requirement:\n\n${rawPrompt}`;
+      formattedPrompt = `Generate code for the following requirement:\n\n\${rawPrompt}`;
       break;
     case "code_explanation":
-      formattedPrompt = `Explain the following code:\n\n${context?.code || ""}\n\n${rawPrompt}`;
+      formattedPrompt = `Explain the following code:\n\n\${context?.code || ""}\n\n\${rawPrompt}`;
       break;
     default:
       // No special formatting needed
       break;
   }
-  
+
   return formattedPrompt;
 }
 

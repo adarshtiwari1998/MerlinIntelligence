@@ -1,4 +1,5 @@
-import type { Express } from "express";
+// routes.ts
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { modelRequestSchema, modelResponseSchema } from "@shared/schema";
@@ -8,115 +9,115 @@ import { LLMGateway } from "./ai/llmGateway";
 import { MemVectorDB } from "./ai/vectorDb";
 
 // Initialize AI components
-const llmGateway = new LLMGateway();
 const vectorDb = new MemVectorDB();
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  // Health check route
-  app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok" });
-  });
-  
-  // LLM gateway route
-  app.post("/api/llm", async (req, res) => {
-    try {
-      const validatedRequest = modelRequestSchema.parse(req.body);
-      
-      const startTime = Date.now();
-      const result = await llmGateway.routeRequest(validatedRequest);
-      
-      // Track response time
-      const endTime = Date.now();
-      const latencyMs = endTime - startTime;
-      
-      // Store request and response in storage (optional)
-      if (req.session?.user?.id) {
-        const aiRequest = await storage.createAIRequest({
-          userId: req.session.user.id,
-          modelType: validatedRequest.modelType,
-          prompt: validatedRequest.prompt,
-          context: validatedRequest.context || {},
-          maxTokens: validatedRequest.maxTokens,
-          temperature: validatedRequest.temperature.toString(),
-        });
-        
-        await storage.createAIResponse({
-          requestId: aiRequest.id,
-          text: result.text,
-          modelUsed: result.modelUsed,
-          tokensUsed: result.tokensUsed,
-          latencyMs: Math.round(latencyMs),
-        });
-      }
-      
-      // Return response to client
-      res.json({
-        text: result.text,
-        modelUsed: result.modelUsed,
-        tokensUsed: result.tokensUsed,
-        latencyMs: Math.round(latencyMs),
-      });
-    } catch (error) {
-      console.error("Error processing LLM request:", error);
-      
-      if (error instanceof ZodError) {
-        const validationError = fromZodError(error);
-        res.status(400).json({ error: validationError.message });
-      } else {
-        res.status(500).json({ error: error instanceof Error ? error.message : "Internal server error" });
-      }
-    }
-  });
-  
-  // Embeddings route
-  app.post("/api/embeddings", async (req, res) => {
-    try {
-      const { text } = req.body;
-      
-      if (!text || typeof text !== "string") {
-        return res.status(400).json({ error: "Text is required" });
-      }
-      
-      const embedding = await llmGateway.generateEmbedding(text);
-      
-      // Store embedding in vector DB
-      const id = await vectorDb.addItem(text, embedding);
-      
-      res.json({ id, embedding });
-    } catch (error) {
-      console.error("Error generating embedding:", error);
-      res.status(500).json({ error: error instanceof Error ? error.message : "Internal server error" });
-    }
-  });
-  
-  // Similarity search route
-  app.post("/api/similarity", async (req, res) => {
-    try {
-      const { embedding, limit = 5 } = req.body;
-      
-      if (!embedding || !Array.isArray(embedding)) {
-        return res.status(400).json({ error: "Valid embedding array is required" });
-      }
-      
-      const results = await vectorDb.searchSimilar(embedding, limit);
-      res.json(results);
-    } catch (error) {
-      console.error("Error performing similarity search:", error);
-      res.status(500).json({ error: error instanceof Error ? error.message : "Internal server error" });
-    }
-  });
-  
-  // LLM status route
-  app.get("/api/llm/status", async (_req, res) => {
-    try {
-      const status = await llmGateway.getStatus();
-      res.json(status);
-    } catch (error) {
-      console.error("Error getting LLM status:", error);
-      res.status(500).json({ error: error instanceof Error ? error.message : "Internal server error" });
-    }
-  });
+// Register routes function now accepts llmGateway
+export async function registerRoutes(app: Express, llmGateway: LLMGateway): Promise<Server> {
+    // Health check route
+    app.get("/api/health", (_req, res) => {
+        res.json({ status: "ok" });
+    });
 
-  const httpServer = createServer(app);
-  return httpServer;
+    // LLM gateway route
+    app.post("/api/llm", async (req: Request, res: Response) => {
+        try {
+            const validatedRequest = modelRequestSchema.parse(req.body);
+
+            const startTime = Date.now();
+            const result = await llmGateway.routeRequest(validatedRequest);
+
+            // Track response time
+            const endTime = Date.now();
+            const latencyMs = endTime - startTime;
+
+            // Store request and response in storage (optional)
+            if (req.session?.user?.id) {
+                const aiRequest = await storage.createAIRequest({
+                    userId: req.session.user.id,
+                    modelType: validatedRequest.modelType,
+                    prompt: validatedRequest.prompt,
+                    context: validatedRequest.context || {},
+                    maxTokens: validatedRequest.maxTokens,
+                    temperature: validatedRequest.temperature.toString(),
+                });
+
+                await storage.createAIResponse({
+                    requestId: aiRequest.id,
+                    text: result.text,
+                    modelUsed: result.modelUsed,
+                    tokensUsed: result.tokensUsed,
+                    latencyMs: Math.round(latencyMs),
+                });
+            }
+
+            // Return response to client
+            res.json({
+                text: result.text,
+                modelUsed: result.modelUsed,
+                tokensUsed: result.tokensUsed,
+                latencyMs: Math.round(latencyMs),
+            });
+        } catch (error) {
+            console.error("Error processing LLM request:", error);
+
+            if (error instanceof ZodError) {
+                const validationError = fromZodError(error);
+                res.status(400).json({ error: validationError.message });
+            } else {
+                res.status(500).json({ error: error instanceof Error ? error.message : "Internal server error" });
+            }
+        }
+    });
+
+    // Embeddings route
+    app.post("/api/embeddings", async (req: Request, res: Response) => {
+        try {
+            const { text } = req.body;
+
+            if (!text || typeof text !== "string") {
+                return res.status(400).json({ error: "Text is required" });
+            }
+
+            const embedding = await llmGateway.generateEmbedding(text);
+
+            // Store embedding in vector DB
+            const id = await vectorDb.addItem(text, embedding);
+
+            res.json({ id, embedding });
+        } catch (error) {
+            console.error("Error generating embedding:", error);
+            res.status(500).json({ error: error instanceof Error ? error.message : "Internal server error" });
+        }
+    });
+
+    // Similarity search route
+    app.post("/api/similarity", async (req: Request, res: Response) => {
+        try {
+            const { embedding, limit = 5 } = req.body;
+
+            if (!embedding || !Array.isArray(embedding)) {
+                return res.status(400).json({ error: "Valid embedding array is required" });
+            }
+
+            const results = await vectorDb.searchSimilar(embedding, limit);
+            res.json(results);
+        } catch (error) {
+            console.error("Error performing similarity search:", error);
+            res.status(500).json({ error: error instanceof Error ? error.message : "Internal server error" });
+        }
+    });
+
+    // LLM status route
+    app.get("/api/llm/status", async (_req: Request, res: Response) => {
+        try {
+            const status = await llmGateway.getStatus();
+            res.json(status);
+        } catch (error) {
+            console.error("Error getting LLM status:", error);
+            res.status(500).json({ error: error instanceof Error ? error.message : "Internal server error" });
+        }
+    });
+
+    const httpServer = createServer(app);
+    return httpServer;
 }
