@@ -205,9 +205,41 @@ const ContentBlock = ({ type, content, level }: { type: string; content: string;
           className="prose dark:prose-invert max-w-none my-4 transition-all duration-300"
           style={{ transition: 'opacity 0.5s, transform 0.5s' }}
         >
-          {content.split('\n').map((line, i) => (
-            <p key={i} className="mb-2 leading-relaxed">{line}</p>
-          ))}
+          {content.split('\n').map((line, i) => {
+            // Check for heading (# syntax)
+            if (line.startsWith('#')) {
+              const level = line.match(/^#+/)[0].length;
+              const HeadingTag = `h${level}` as keyof JSX.IntrinsicElements;
+              return <HeadingTag key={i} className="font-bold text-lg mb-2">{line.replace(/^#+\s/, '')}</HeadingTag>;
+            }
+            
+            // Check for list items
+            if (line.startsWith('- ') || line.startsWith('* ')) {
+              return <li key={i} className="ml-4 mb-2">{line.slice(2)}</li>;
+            }
+            
+            // Check for numbered list
+            if (/^\d+\./.test(line)) {
+              return <li key={i} className="ml-4 mb-2">{line.replace(/^\d+\.\s/, '')}</li>;
+            }
+
+            // Check for bold text
+            if (line.includes('**')) {
+              const parts = line.split(/(\*\*.*?\*\*)/g);
+              return (
+                <p key={i} className="mb-2 leading-relaxed">
+                  {parts.map((part, j) => 
+                    part.startsWith('**') ? 
+                      <strong key={j}>{part.replace(/\*\*/g, '')}</strong> : 
+                      part
+                  )}
+                </p>
+              );
+            }
+            
+            // Regular paragraph
+            return line ? <p key={i} className="mb-2 leading-relaxed">{line}</p> : <br key={i} />;
+          })}
         </div>
       );
   }
