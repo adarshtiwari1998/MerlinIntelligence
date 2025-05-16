@@ -115,12 +115,38 @@ const ContentBlock = ({ block }: { block: any }) => {
             useEffect(() => {
         if (blockRef.current && block.content.includes('```mermaid')) {
             const mermaidCode = block.content.split('```mermaid')[1].split('```')[0].trim();
-            mermaid.render(`mermaid-${Date.now()}`, mermaidCode)
-                .then(({ svg }) => {
-                    if (blockRef.current) {
-                        blockRef.current.innerHTML = svg;
-                    }
-                });
+            
+            // Configure Mermaid for better diagrams
+            mermaid.initialize({
+                startOnLoad: true,
+                theme: 'default',
+                flowchart: {
+                    curve: 'basis',
+                    padding: 20,
+                    useMaxWidth: true,
+                },
+                securityLevel: 'loose'
+            });
+            
+            try {
+                mermaid.render(`mermaid-${Date.now()}`, mermaidCode)
+                    .then(({ svg }) => {
+                        if (blockRef.current) {
+                            blockRef.current.innerHTML = svg;
+                            blockRef.current.style.backgroundColor = 'white';
+                            blockRef.current.style.padding = '1rem';
+                            blockRef.current.style.borderRadius = '0.5rem';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Mermaid rendering error:', error);
+                        if (blockRef.current) {
+                            blockRef.current.innerHTML = '<p class="text-red-500">Error rendering diagram</p>';
+                        }
+                    });
+            } catch (error) {
+                console.error('Mermaid initialization error:', error);
+            }
         }
     }, [block.content]);
 

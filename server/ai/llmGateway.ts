@@ -118,16 +118,22 @@ export class LLMGateway {
                     if (request.prompt.toLowerCase().includes('flowchart') || 
                         request.prompt.toLowerCase().includes('diagram')) {
                         
-                        // Find relevant context from history
-                        const context = history
+                        // Get last topic discussed from history
+                        const previousMessages = history
                             .map(msg => msg.content)
-                            .join(' ')
-                            .match(/(?:about|regarding|for)\s+([^\.]+)/i)?.[1] || '';
+                            .join('\n');
                             
-                        enhancedPrompt = `Create a Mermaid diagram for ${context || request.prompt}. Use this format:
+                        const lastTopic = previousMessages
+                            .split('\n')
+                            .filter(line => !line.toLowerCase().includes('flowchart') && 
+                                          !line.toLowerCase().includes('diagram'))
+                            .pop() || '';
+
+                        // Create context-aware prompt
+                        enhancedPrompt = `Based on our previous discussion about "${lastTopic}", create a Mermaid diagram that illustrates this concept. For context, here was our conversation:\n\n${previousMessages}\n\nCreate a detailed Mermaid flowchart diagram about this topic using this format:
                         \`\`\`mermaid
                         flowchart TD
-                            // Your flowchart nodes and connections here
+                            // Create a detailed flowchart about the previously discussed topic
                         \`\`\``;
                     }
                     
