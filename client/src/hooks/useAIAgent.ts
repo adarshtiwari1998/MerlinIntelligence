@@ -9,38 +9,68 @@ export function useAIAgent() {
   const sendMessage = async (request: ModelRequest): Promise<ModelResponse | null> => {
     setIsLoading(true);
     
-    // Enhanced context handling
-    // Get more context from recent messages
-    const recentMessages = messages.slice(-10); // Increased context window
+    // Enhanced context handling with better follow-up detection
+    const recentMessages = messages.slice(-10);
     
-    // Find the main topic from recent substantial messages
+    // Extract main topic and key concepts
     const mainTopic = recentMessages
         .filter(msg => msg.role === "assistant" && msg.content.length > 50)
         .map(msg => msg.content.split('\n')[0])
         .pop() || '';
 
-    // Create a structured conversation history
-    const conversationSummary = recentMessages
-        .map(msg => {
-            // Extract key concepts from each message
-            const concepts = msg.content
-                .toLowerCase()
-                .match(/\b(api|interface|flowchart|diagram|architecture)\b/g) || [];
+    // Get the last substantial discussion
+    const lastDiscussion = recentMessages
+        .filter(msg => msg.role === "assistant" && msg.content.length > 100)
+        .pop()?.content || '';
+
+    // Detect if current request is a follow-up
+    const isFollowUp = request.prompt.toLowerCase().match(/\b(flowchart|diagram|explain|how|why|it|this|that)\b/g) || 
+                      request.prompt.length < 20;
+
+    // Create enhanced conversation context
+    const conversationContext = recentMessages.map(msg => {
+        // Extract key concepts and relationships
+        const concepts = msg.content
+            .toLowerCase()
+            .match(/\b(api|interface|flowchart|diagram|architecture|process|system|application)\b/g) || [];
             
-            return {
-                role: msg.role,
-                content: msg.content,
-                timestamp: msg.timestamp,
-                concepts: [...new Set(concepts)] // Unique concepts
-            };
-        });
+        // Extract potential topics
+        const topics = msg.content
+            .split('\n')
+            .filter(line => line.length > 50)
+            .map(line => line.split('.')[0])
+            .filter(Boolean);
+            
+        return {
+            role: msg.role,
+            content: msg.content,
+            timestamp: msg.timestamp,
+            concepts: [...new Set(concepts)],
+            topics: [...new Set(topics)]
+        };
+    });
+
+    // Build rich context for better follow-up handling
+    const contextualHistory = {
+        mainTopic,
+        lastDiscussion,
+        isFollowUp,
+        recentTopics: conversationContext
+            .flatMap(ctx => ctx.topics)
+            .slice(-3),
+        conceptChain: conversationContext
+            .flatMap(ctx => ctx.concepts)
+            .filter(Boolean)
+    };
 
     request.context = {
         ...request.context,
         history: recentMessages,
-        mainTopic,
-        conversationContext: conversationSummary,
-        lastQuery: messages[messages.length - 1]?.content || ''
+        contextualHistory,
+        conversationContext,
+        lastQuery: messages[messages.length - 1]?.content || '',
+        requiresFlowchart: request.prompt.toLowerCase().includes('flowchart') ||
+                          (contextualHistory.isFollowUp && lastDiscussion.length > 0)
     };
     
     try {
