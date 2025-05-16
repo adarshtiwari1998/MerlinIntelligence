@@ -113,9 +113,8 @@ export class LLMGateway {
         try {
           const model = this.gemini.getGenerativeModel({ model: "gemini-pro" });
           const result = await model.generateContent(request.prompt);
-          const response = await result.response;
           return {
-            text: response.text,
+            text: result.response.text(),
             modelUsed: "gemini-pro",
             tokensUsed: 0, // Gemini doesn't provide token count
             latencyMs: 0
