@@ -240,6 +240,15 @@ export class LLMGateway {
    * Calls the code-specialized LLM for code completion, generation, etc.
    */
   private async callCodeModel(request: ModelRequest): Promise<ModelResponse> {
+    if (!this.openai) {
+      return {
+        text: "OpenAI API is not configured. Please check your API key configuration.",
+        modelUsed: "error",
+        tokensUsed: 0,
+        latencyMs: 0
+      };
+    }
+
     try {
       // For code-related tasks, we'll add specific instructions to the prompt
       let systemPrompt = "You are a code-specialized AI assistant that excels at programming tasks. ";
