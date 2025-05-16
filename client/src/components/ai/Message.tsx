@@ -56,14 +56,36 @@ export default function Message({ message, isLoading }: MessageProps) {
   const isSystem = message.role === "system";
 
   const renderContent = (content: string) => {
-    const parts = content.split(/(```[\s\S]*?```)/);
+    // Split content by different patterns
+    const parts = content.split(/(```[\s\S]*?```|\[.*?\]|\{.*?\}|\$.*?\$)/);
 
     return parts.map((part, index) => {
+      // Code blocks
       if (part.startsWith('```') && part.endsWith('```')) {
         const [, language, code] = part.match(/```(\w*)\n?([\s\S]*?)```/) || [null, '', part.slice(3, -3)];
         return <CodeBlock key={index} code={code.trim()} language={language} />;
       }
+      
+      // JSON/Object notation
+      if (part.startsWith('{') && part.endsWith('}')) {
+        try {
+          const formatted = JSON.stringify(JSON.parse(part), null, 2);
+          return <CodeBlock key={index} code={formatted} language="json" />;
+        } catch {
+          return <TextBlock key={index} text={part} />;
+        }
+      }
 
+      // Inline code or command
+      if (part.startsWith('$')) {
+        return (
+          <code key={index} className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">
+            {part}
+          </code>
+        );
+      }
+
+      // Regular text
       return <TextBlock key={index} text={part} />;
     });
   };

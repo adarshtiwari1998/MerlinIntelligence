@@ -18,11 +18,42 @@ export function useAIAgent() {
         timestamp: new Date(),
       };
       
-      setMessages(prev => [...prev, userMessage]);
+      // Create placeholder for AI response
+      const aiMessageId = (Date.now() + 1).toString();
+      const aiMessage: Message = {
+        id: aiMessageId,
+        role: "assistant",
+        content: "",
+        timestamp: new Date(),
+        isStreaming: true,
+      };
       
-      // Send request to backend
-      const response = await apiRequest("POST", "/api/llm", request);
-      const data: ModelResponse = await response.json();
+      setMessages(prev => [...prev, userMessage, aiMessage]);
+      
+      // Stream response
+      const response = await fetch("/api/llm/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(request),
+      });
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      
+      if (reader) {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value);
+          
+          setMessages(prev => prev.map(msg => 
+            msg.id === aiMessageId 
+              ? { ...msg, content: msg.content + chunk }
+              : msg
+          ));
+        }
+      }
       
       // Add AI response to messages
       const aiMessage: Message = {

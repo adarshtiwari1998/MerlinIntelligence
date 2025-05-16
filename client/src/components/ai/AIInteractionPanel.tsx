@@ -23,22 +23,39 @@ export default function AIInteractionPanel({
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto scroll to bottom when messages change
+  // Improved scroll handling
   useEffect(() => {
     const scrollToBottom = () => {
       if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ 
-          behavior: "smooth",
-          block: "end"
-        });
+        const container = messagesEndRef.current.parentElement;
+        const isNearBottom = container && 
+          (container.scrollHeight - container.scrollTop - container.clientHeight < 100);
+
+        if (isNearBottom || messages[messages.length - 1]?.role === 'user') {
+          messagesEndRef.current.scrollIntoView({ 
+            behavior: messages[messages.length - 1]?.role === 'user' ? 'instant' : 'smooth',
+            block: "end"
+          });
+        }
       }
     };
     
-    // Scroll immediately and after a short delay to handle content loading
     scrollToBottom();
-    const timeoutId = setTimeout(scrollToBottom, 100);
+    // Handle dynamic content and animations
+    const timeoutIds = [100, 200, 500, 1000].map(delay => 
+      setTimeout(scrollToBottom, delay)
+    );
     
-    return () => clearTimeout(timeoutId);
+    return () => timeoutIds.forEach(id => clearTimeout(id));
   }, [messages, isLoading]);
+
+  // Handle streaming updates
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.isStreaming) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [messages]);
 
   const handleSendMessage = async () => {
     if (inputValue.trim() && !isLoading) {
