@@ -15,27 +15,27 @@ import {
 export class LLMGateway {
   private anthropic: Anthropic;
   private cache: AICache;
-  
+
   private gemini: any; // Add proper type when implementing
   private currentProvider: ModelProvider = "gemini";
   private availableProviders: ModelProvider[] = [];
-  
+
   private static async initialize(): Promise<LLMGateway> {
     const gateway = new LLMGateway();
-    
+
     // Initialize Anthropic client and check if API key is valid
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
     if (anthropicKey && anthropicKey !== "sk-ant-dummy-key-for-dev") {
       gateway.anthropic = new Anthropic({ apiKey: anthropicKey });
       gateway.availableProviders.push("anthropic");
     }
-    
+
     // Initialize Gemini client if API key is available
     const geminiKey = process.env.GEMINI_API_KEY;
     if (!geminiKey) {
       throw new Error("GEMINI_API_KEY is required but not found in environment variables");
     }
-    
+
     try {
       const { GoogleGenerativeAI } = await import("@google/generative-ai");
       gateway.gemini = new GoogleGenerativeAI(geminiKey);
@@ -45,17 +45,17 @@ export class LLMGateway {
       console.error("Failed to initialize Gemini:", error);
       throw new Error("Failed to initialize Gemini client");
     }
-    
+
     return gateway;
   }
-  
+
   private constructor() {
     this.cache = new AICache();
   }
-  
+
   public static async create(): Promise<LLMGateway> {
     const gateway = await LLMGateway.initialize();
-    
+
     // Set Gemini as the only provider
     const geminiKey = process.env.GEMINI_API_KEY;
     if (!geminiKey) {
@@ -64,61 +64,71 @@ export class LLMGateway {
 
     gateway.availableProviders = ['gemini'];
     gateway.currentProvider = 'gemini';
-    
+
     console.log("Available providers:", gateway.availableProviders);
     console.log("LLM Gateway initialized with OpenAI, Anthropic, and Gemini support");
-    
+
     return gateway;
   }
-  
+
   private async tryNextProvider() {
     if (this.availableProviders.length === 0) {
       throw new Error("No available AI providers");
     }
-    
+
     const currentIndex = this.availableProviders.indexOf(this.currentProvider);
     const nextIndex = (currentIndex + 1) % this.availableProviders.length;
     this.currentProvider = this.availableProviders[nextIndex];
     console.log(`Switching to provider: ${this.currentProvider}`);
     return this.currentProvider;
   }
-  
+
   /**
    * Routes the request to the appropriate model based on request type
    */
   async routeRequest(request: ModelRequest): Promise<ModelResponse> {
     console.log(`Routing request of type ${request.modelType}:`, request.prompt.slice(0, 50) + "...");
-    
+
     // Check cache first
     const cacheKey = this.generateCacheKey(request);
     const cachedResponse = this.cache.get(cacheKey);
-    
+
     if (cachedResponse) {
       console.log("Cache hit for request!");
       return cachedResponse;
     }
-    
+
     // Start measuring response time
     const startTime = Date.now();
     let response: ModelResponse;
-    
+
     try {
       // Determine provider based on request or settings
       // By default, we'll use OpenAI, but this could be configured by the user
       const provider: ModelProvider = request.context?.provider as ModelProvider || this.currentProvider;
       console.log(`Using provider: ${provider}`);
-      
+
       // Route to appropriate model based on type and provider
       if (provider === "gemini") {
-        const model = this.gemini.getGenerativeModel({ model: "gemini-pro" });
-        const result = await model.generateContent(request.prompt);
-        const response = await result.response;
-        return {
-          text: response.text(),
-          modelUsed: "gemini-pro",
-          tokensUsed: 0, // Gemini doesn't provide token count
-          latencyMs: 0
-        };
+        try {
+          const model = this.gemini.getGenerativeModel({ model: "gemini-pro" });
+          const result = await model.generateContent(request.prompt);
+          const response = await result.response;
+          return {
+            text: response.text,
+            modelUsed: "gemini-pro",
+            tokensUsed: 0, // Gemini doesn't provide token count
+            latencyMs: 0
+          };
+        } catch (error) {
+          console.error("Error calling Gemini:", error);
+          return {
+            text: "I apologize, but I encountered an error processing your request with Gemini. Please try again later.",
+            modelUsed: "error",
+            tokensUsed: 0,
+            latencyMs: Date.now() - startTime
+          };
+        }
       } else if (provider === "anthropic") {
         switch (request.modelType) {
           case "code":
@@ -140,24 +150,24 @@ export class LLMGateway {
             response = await this.callPrimaryModel(request);
         }
       }
-      
+
       // Calculate latency
       const latencyMs = Date.now() - startTime;
       response.latencyMs = latencyMs;
-      
+
       // Cache the response
       this.cache.set(cacheKey, response);
-      
+
       return response;
     } catch (error) {
       console.error(`Error in ${request.modelType} model:`, error);
-      
+
       // Try other providers if current one fails
       let attempts = 3; // Try all three providers
       while (attempts > 0) {
         const nextProvider = await this.tryNextProvider();
         console.log(`Attempting with next provider: ${nextProvider}`);
-        
+
         try {
           switch (nextProvider) {
             case "anthropic":
@@ -169,7 +179,7 @@ export class LLMGateway {
             default:
               response = await this.callPrimaryModel(request);
           }
-          
+
           const latencyMs = Date.now() - startTime;
           response.latencyMs = latencyMs;
           return response;
@@ -178,7 +188,7 @@ export class LLMGateway {
           attempts--;
         }
       }
-      
+
       // Return graceful error instead of throwing
       return {
         text: "I apologize, but I encountered an error processing your request. This could be due to API limits, connectivity issues, or other technical problems. Please try again or try using a different model provider.",
@@ -188,17 +198,17 @@ export class LLMGateway {
       };
     }
   }
-  
+
   /**
    * Calls the primary LLM (GPT-4o, etc.)
    */
   private async callPrimaryModel(request: ModelRequest): Promise<ModelResponse> {
     try {
       console.log("Calling OpenAI primary model with API key:", this.openai.apiKey ? "API key is set" : "No API key");
-      
+
       // Build a robust system prompt to handle various user questions
       const systemPrompt = "You are a versatile AI assistant that can help with coding, text analysis, explanations, and general questions. Respond in a helpful, accurate, and concise manner. For code, include explanations of what the code does.";
-      
+
       const completion = await this.openai.chat.completions.create({
         model: PRIMARY_MODEL,
         messages: [
@@ -214,10 +224,10 @@ export class LLMGateway {
         max_tokens: request.maxTokens,
         temperature: request.temperature,
       });
-      
+
       // For safety, check if we have a valid response
       const responseText = completion.choices[0].message.content || "I'm sorry, I couldn't generate a response at this time.";
-      
+
       return {
         text: responseText,
         modelUsed: PRIMARY_MODEL,
@@ -226,7 +236,7 @@ export class LLMGateway {
       };
     } catch (error) {
       console.error("Error calling primary model:", error);
-      
+
       // Create a more helpful error response
       return {
         text: "I apologize, but I encountered an error while processing your request. This could be due to API limits, connection issues, or other technical problems. Please try again with a different question or check if the OpenAI API key is properly configured.",
@@ -236,7 +246,7 @@ export class LLMGateway {
       };
     }
   }
-  
+
   /**
    * Calls the code-specialized LLM for code completion, generation, etc.
    */
@@ -253,7 +263,7 @@ export class LLMGateway {
     try {
       // For code-related tasks, we'll add specific instructions to the prompt
       let systemPrompt = "You are a code-specialized AI assistant that excels at programming tasks. ";
-      
+
       if (request.context?.taskType === "code_completion") {
         systemPrompt += "Complete the code snippet with the most logical continuation. Focus on correctness and best practices. Make sure to handle edge cases and provide efficient solutions.";
       } else if (request.context?.taskType === "code_generation") {
@@ -263,13 +273,13 @@ export class LLMGateway {
       } else {
         systemPrompt += "Provide helpful coding assistance based on the user's request. Focus on delivering practical, working solutions with explanations.";
       }
-      
+
       // Add the code context if provided
       let userPrompt = request.prompt;
       if (request.context?.code) {
         userPrompt = `Code context:\n\`\`\`\n${request.context.code}\n\`\`\`\n\nRequest: ${request.prompt}`;
       }
-      
+
       const completion = await this.openai.chat.completions.create({
         model: CODE_MODEL,
         messages: [
@@ -285,10 +295,10 @@ export class LLMGateway {
         max_tokens: request.maxTokens,
         temperature: request.temperature,
       });
-      
+
       // For safety, check if we have a valid response
       const responseText = completion.choices[0].message.content || "I'm sorry, I couldn't generate code for that request.";
-      
+
       return {
         text: responseText,
         modelUsed: CODE_MODEL,
@@ -297,7 +307,7 @@ export class LLMGateway {
       };
     } catch (error) {
       console.error("Error calling code model:", error);
-      
+
       // Create a more helpful error response
       return {
         text: "I apologize, but I encountered an error while processing your code request. Please try simplifying your request or check if the OpenAI API key is properly configured. For code generation, being specific about the programming language and functionality you need can help.",
@@ -307,7 +317,7 @@ export class LLMGateway {
       };
     }
   }
-  
+
   /**
    * Uses the embeddings model to generate vector representations
    */
@@ -315,9 +325,9 @@ export class LLMGateway {
     try {
       // For embeddings, we don't need an actual completion, just the embedding itself
       // We'll return a message indicating that embeddings were generated successfully
-      
+
       const embedding = await this.generateEmbedding(request.prompt);
-      
+
       return {
         text: JSON.stringify({ 
           message: "Embeddings generated successfully", 
@@ -329,7 +339,7 @@ export class LLMGateway {
       };
     } catch (error) {
       console.error("Error calling embeddings model:", error);
-      
+
       // Create a more helpful error response instead of throwing
       return {
         text: "I apologize, but I encountered an error while generating embeddings for your text. This feature is used for semantic search and similarity calculations. Please try again with different text or check if the OpenAI API key is properly configured.",
@@ -339,7 +349,7 @@ export class LLMGateway {
       };
     }
   }
-  
+
   /**
    * Generates embeddings for the input text
    */
@@ -349,14 +359,14 @@ export class LLMGateway {
         model: EMBEDDINGS_MODEL,
         input: text
       });
-      
+
       return response.data[0].embedding;
     } catch (error) {
       console.error("Error generating embedding:", error);
       throw new Error(`Embedding generation error: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
-  
+
   /**
    * Generates a cache key for the request
    */
@@ -368,17 +378,17 @@ export class LLMGateway {
       temperature: request.temperature
     }));
   }
-  
+
   /**
    * Calls the Anthropic Claude model for primary tasks
    */
   private async callAnthropicPrimaryModel(request: ModelRequest): Promise<ModelResponse> {
     try {
       console.log("Calling Anthropic Claude model for primary task");
-      
+
       // Build system prompt to handle various questions
       const systemPrompt = "You are Claude, a versatile AI assistant that can help with a wide range of tasks including answering questions, explaining concepts, analyzing text, and providing thoughtful responses. Be helpful, accurate, and concise.";
-      
+
       const completion = await this.anthropic.messages.create({
         model: ANTHROPIC_PRIMARY_MODEL,
         max_tokens: request.maxTokens,
@@ -391,17 +401,17 @@ export class LLMGateway {
         ],
         temperature: request.temperature,
       });
-      
+
       // Extract the response text properly handling Anthropic's response format
       let responseText = "I couldn't generate a response";
-      
+
       // Check if we have content and it's a text block
       if (completion.content && 
           completion.content.length > 0 && 
           completion.content[0].type === 'text') {
         responseText = completion.content[0].text;
       }
-      
+
       return {
         text: responseText,
         modelUsed: ANTHROPIC_PRIMARY_MODEL,
@@ -410,7 +420,7 @@ export class LLMGateway {
       };
     } catch (error) {
       console.error("Error calling Anthropic Claude model:", error);
-      
+
       // Create a more helpful error response
       return {
         text: "I apologize, but I encountered an error while processing your request with the Claude model. This could be due to API limits, connectivity issues, or other technical problems. Please try again or switch to a different model.",
@@ -427,10 +437,10 @@ export class LLMGateway {
   private async callAnthropicCodeModel(request: ModelRequest): Promise<ModelResponse> {
     try {
       console.log("Calling Anthropic Claude model for code task");
-      
+
       // Build system prompt for code-related tasks
       let systemPrompt = "You are Claude, an AI assistant specialized in programming and software development. ";
-      
+
       if (request.context?.taskType === "code_completion") {
         systemPrompt += "Complete the code snippet with the most logical continuation. Focus on correctness, efficiency, and best practices.";
       } else if (request.context?.taskType === "code_generation") {
@@ -440,13 +450,13 @@ export class LLMGateway {
       } else {
         systemPrompt += "Provide expert programming assistance based on the user's request.";
       }
-      
+
       // Add the code context if provided
       let userPrompt = request.prompt;
       if (request.context?.code) {
         userPrompt = `Code context:\n\`\`\`\n${request.context.code}\n\`\`\`\n\nRequest: ${request.prompt}`;
       }
-      
+
       const completion = await this.anthropic.messages.create({
         model: ANTHROPIC_CODE_MODEL,
         system: systemPrompt,
@@ -459,17 +469,17 @@ export class LLMGateway {
         ],
         temperature: request.temperature,
       });
-      
+
       // Extract the response text properly handling Anthropic's response format
       let responseText = "I couldn't generate code for that request";
-      
+
       // Check if we have content and it's a text block
       if (completion.content && 
           completion.content.length > 0 && 
           completion.content[0].type === 'text') {
         responseText = completion.content[0].text;
       }
-      
+
       return {
         text: responseText,
         modelUsed: ANTHROPIC_CODE_MODEL,
@@ -478,7 +488,7 @@ export class LLMGateway {
       };
     } catch (error) {
       console.error("Error calling Anthropic Claude code model:", error);
-      
+
       // Create a more helpful error response
       return {
         text: "I apologize, but I encountered an error while processing your code request with the Claude model. This could be due to API limits, connectivity issues, or other technical problems. Please try again or switch to a different model.",
@@ -499,17 +509,17 @@ export class LLMGateway {
       embeddings: false,
       anthropic: false
     };
-    
+
     // Check OpenAI connection
     const hasOpenAIKey = !!this.openai.apiKey && this.openai.apiKey !== "sk-dummy-key-for-dev";
     status.primary = hasOpenAIKey;
     status.code = hasOpenAIKey;
     status.embeddings = hasOpenAIKey;
-    
+
     // Check Anthropic connection
     const hasAnthropicKey = !!this.anthropic.apiKey && this.anthropic.apiKey !== "sk-ant-dummy-key-for-dev";
     status.anthropic = hasAnthropicKey;
-    
+
     return status;
   }
 }
