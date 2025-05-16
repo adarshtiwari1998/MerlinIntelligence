@@ -9,10 +9,21 @@ export function useAIAgent() {
   const sendMessage = async (request: ModelRequest): Promise<ModelResponse | null> => {
     setIsLoading(true);
     
-    // Add message history to context
+    // Enhanced context handling
+    const recentMessages = messages.slice(-5);
+    const lastAssistantMessage = recentMessages
+        .filter(msg => msg.role === "assistant")
+        .pop();
+
     request.context = {
         ...request.context,
-        history: messages.slice(-5) // Last 5 messages for context
+        history: recentMessages,
+        mainTopic: lastAssistantMessage?.content.split('\n')[0] || '',
+        conversationContext: recentMessages.map(msg => ({
+            role: msg.role,
+            content: msg.content,
+            timestamp: msg.timestamp
+        }))
     };
     
     try {
