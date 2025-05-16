@@ -59,13 +59,12 @@ app.use((req, res, next) => {
         serveStatic(app);
     }
 
-    const port = 3001;
+    const port = process.env.PORT || 5000;
     server.listen({
         port,
         host: "0.0.0.0",
-        reusePort: true,
     }, () => {
-        log(`serving on port \${port}`);
+        log(`Server listening on http://0.0.0.0:${port}`);
     });
     process.on('uncaughtException', (error) => {
         console.error('Uncaught Exception:', error);
