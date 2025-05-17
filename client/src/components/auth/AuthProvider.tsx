@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         setUser(data.user);
         setIsAuthenticated(true);
-        navigate('/chat');
+        return true;
       } else {
         throw new Error(data.message || 'Login failed');
       }

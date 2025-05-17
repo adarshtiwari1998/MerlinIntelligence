@@ -16,8 +16,15 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await login(email, password);
-      setLocation('/chat');
+      const success = await login(email, password);
+      if (success) {
+        toast({
+          title: "Welcome back!",
+          description: "Successfully logged in. Redirecting to chat...",
+        });
+        // Use setTimeout to ensure toast is shown before redirect
+        setTimeout(() => setLocation('/chat'), 500);
+      }
     } catch (error) {
       console.error('Auth error:', error);
       toast({
