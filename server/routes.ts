@@ -9,7 +9,7 @@ import { fromZodError } from "zod-validation-error";
 import { LLMGateway } from "./ai/llmGateway";
 import { MemVectorDB } from "./ai/vectorDb";
 import nodemailer from 'nodemailer';
-
+import { storage } from './storage';
 // Configure email transporter
 const transporter = nodemailer.createTransport({
     host: "smtp.hostinger.com",
