@@ -172,7 +172,7 @@ export async function register(req: Request, res: Response) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationToken = uuidv4();
+    const verificationToken = `${uuidv4()}_${Date.now()}`; // Add timestamp to make token unique
     const verificationExpiry = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
 
     // Using a transaction to ensure data consistency
@@ -313,10 +313,26 @@ export async function verifyEmail(req: Request, res: Response) {
 export async function verifyRouteGuard(req: Request, res: Response, next: NextFunction) {
   const referrer = req.headers.referer;
   const isFromSignup = referrer?.includes('/sign-up');
-  const hasValidToken = req.query.token || (req.query.mode === 'verifyEmail' && req.query.code);
+  const verificationToken = req.query.token || (req.query.mode === 'verifyEmail' && req.query.code);
 
-  if (!isFromSignup && !hasValidToken) {
-    return res.status(403).json({ message: 'Access denied' });
+  if (!verificationToken) {
+    return res.status(403).json({ message: 'Invalid verification link' });
+  }
+
+  // Check if token exists and is valid
+  const [pendingUser] = await db
+    .select()
+    .from(pendingUsers)
+    .where(eq(pendingUsers.verificationToken, verificationToken as string))
+    .limit(1);
+
+  if (!pendingUser) {
+    return res.status(404).json({ message: 'Verification link expired or invalid' });
+  }
+
+  if (pendingUser.expiresAt < new Date()) {
+    await db.delete(pendingUsers).where(eq(pendingUsers.id, pendingUser.id));
+    return res.status(400).json({ message: 'Verification link expired. Please sign up again.' });
   }
 
   next();

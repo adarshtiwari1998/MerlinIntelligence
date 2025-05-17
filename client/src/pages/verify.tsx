@@ -5,9 +5,31 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function Verify() {
   const [email, setEmail] = useState('');
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const { toast } = useToast();
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'success' | 'error'>('pending');
+  
+  // Check if we have a valid token
+  const params = new URLSearchParams(location.search);
+  const hasValidToken = params.get('token') || (params.get('mode') === 'verifyEmail' && params.get('code'));
+
+  useEffect(() => {
+    // Redirect to signup if no token
+    if (!hasValidToken) {
+      toast({
+        variant: "destructive",
+        title: "Invalid verification link",
+        description: "Please try signing up again"
+      });
+      navigate('/sign-up');
+      return;
+    }
+
+    // Get email from storage
+    const storedEmail = localStorage.getItem('verificationEmail');
+    if (storedEmail) {
+      setEmail(storedEmail);
+    }
 
   useEffect(() => {
     // Get email from storage
