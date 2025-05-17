@@ -20,15 +20,19 @@ export default function Verify() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token })
       })
-      .then(res => {
+      .then(async res => {
+        const data = await res.json();
         if (res.ok) {
           toast({
             title: "Email verified",
             description: "Verification successful! Redirecting to chat..."
           });
-          setTimeout(() => navigate('/chat'), 1500);
+          // Clear verification email from storage
+          localStorage.removeItem('verificationEmail');
+          // Force reload auth state
+          window.location.href = '/chat';
         } else {
-          throw new Error('Verification failed');
+          throw new Error(data.message || 'Verification failed');
         }
       })
       .catch(() => {

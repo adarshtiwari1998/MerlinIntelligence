@@ -281,10 +281,22 @@ export async function verifyEmail(req: Request, res: Response) {
       .delete(verificationCodes)
       .where(eq(verificationCodes.id, verificationRecord.id));
 
-    // Set session
+    // Set session and save it
     req.session.userId = user.id;
-
-    res.json({ message: 'Email verified successfully' });
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.status(500).json({ message: 'Error creating session' });
+      }
+      res.json({ 
+        message: 'Email verified successfully',
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username
+        }
+      });
+    });
   } catch (error) {
     console.error('Verification error:', error);
     res.status(500).json({ message: 'Verification failed' });
