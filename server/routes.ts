@@ -7,6 +7,16 @@ import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { LLMGateway } from "./ai/llmGateway";
 import { MemVectorDB } from "./ai/vectorDb";
+import nodemailer from 'nodemailer';
+
+// Configure email transporter
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD
+    }
+});
 
 // Initialize AI components
 const vectorDb = new MemVectorDB();
@@ -114,6 +124,34 @@ export async function registerRoutes(app: Express, llmGateway: LLMGateway): Prom
             res.json(status);
         } catch (error) {
             console.error("Error getting LLM status:", error);
+            res.status(500).json({ error: error instanceof Error ? error.message : "Internal server error" });
+        }
+    });
+
+    app.post("/api/auth/forgot-password", async (req: Request, res: Response) => {
+        try {
+            const { email } = req.body;
+
+            // Generate reset token (you may want to store this in DB)
+            const resetToken = Math.random().toString(36).substring(7);
+
+            // Send reset email
+            const mailOptions = {
+                from: process.env.EMAIL_USER,
+                to: email,
+                subject: 'Password Reset Request',
+                html: `
+                    <h1>Password Reset Request</h1>
+                    <p>Click the link below to reset your password:</p>
+                    <a href="${process.env.APP_URL}/reset-password?token=${resetToken}">Reset Password</a>
+                `
+            };
+
+            await transporter.sendMail(mailOptions);
+
+            res.json({ message: 'Password reset email sent' });
+        } catch (error) {
+            console.error("Error sending password reset email:", error);
             res.status(500).json({ error: error instanceof Error ? error.message : "Internal server error" });
         }
     });
