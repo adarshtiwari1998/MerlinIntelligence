@@ -66,24 +66,36 @@ export async function resetPassword(req: Request, res: Response) {
     }
 
     const now = new Date();
-    // Create expiration date 30 minutes from now
-    const expirationDate = new Date();
-    expirationDate.setMinutes(expirationDate.getMinutes() + 30);
     
+    // Check if token is expired
     if (resetRequest.expiresAt < now) {
       console.error('Token expired at:', resetRequest.expiresAt, 'current time:', now);
       await db.delete(passwordResets).where(eq(passwordResets.token, token));
       return res.status(400).json({ message: 'Reset token has expired. Please request a new password reset.' });
     }
 
-    // Update token expiration
-    await db
-      .update(passwordResets)
-      .set({ expiresAt: expirationDate })
-      .where(eq(passwordResets.token, token));
+    // Check if token is used
+    if (resetRequest.used) {
+      await db.delete(passwordResets).where(eq(passwordResets.token, token));
+      return res.status(400).json({ message: 'This reset token has already been used. Please request a new password reset.' });
+    }
 
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    try {
+      // Mark token as used in a transaction to prevent race conditions
+      await db.transaction(async (tx) => {
+        // Mark token as used
+        await tx
+          .update(passwordResets)
+          .set({ used: true })
+          .where(eq(passwordResets.token, token));
+
+        // Hash and update password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await tx
+          .update(users)
+          .set({ password: hashedPassword })
+          .where(eq(users.id, resetRequest.userId));
+      });
 
     // Update user password
     await db
