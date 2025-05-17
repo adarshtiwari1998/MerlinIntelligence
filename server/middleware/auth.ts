@@ -4,6 +4,7 @@ import { db } from '../db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
+import nodemailer from 'nodemailer';
 
 export async function isAuthenticated(req: Request, res: Response, next: NextFunction) {
   if (!req.session.userId) {
@@ -75,6 +76,37 @@ export async function resetPassword(req: Request, res: Response) {
     await db
       .delete(passwordResets)
       .where(eq(passwordResets.token, token));
+
+    // Get user email
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, resetRequest.userId));
+
+    // Send confirmation email
+    const transporter = nodemailer.createTransport({
+      host: "smtp.hostinger.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: 'Password Changed Successfully',
+      html: `
+        <h1>Password Changed</h1>
+        <p>Your password has been changed successfully.</p>
+        <p>If you did not make this change, please contact support immediately.</p>
+      `
+    });
 
     res.json({ message: 'Password reset successful' });
   } catch (error) {
