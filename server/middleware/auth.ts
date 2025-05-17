@@ -261,27 +261,27 @@ export async function register(req: Request, res: Response) {
 }
 
 export async function verifyEmail(req: Request, res: Response) {
-  const { email, otp } = req.body;
+  const { token } = req.body;
 
   try {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email));
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
     const [verificationRecord] = await db
       .select()
       .from(verificationCodes)
-      .where(eq(verificationCodes.userId, user.id))
+      .where(eq(verificationCodes.code, token))
       .orderBy(desc(verificationCodes.createdAt))
       .limit(1);
 
-    if (!verificationRecord || verificationRecord.code !== otp) {
-      return res.status(400).json({ message: 'Invalid verification code' });
+    if (!verificationRecord) {
+      return res.status(404).json({ message: 'Verification token not found' });
+    }
+
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, verificationRecord.userId));
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
 
     if (verificationRecord.expiresAt < new Date()) {
