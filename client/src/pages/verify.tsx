@@ -13,8 +13,10 @@ export default function Verify() {
 
   useEffect(() => {
     const storedEmail = localStorage.getItem('verificationEmail');
-    if (!storedEmail) {
-      navigate('/register');
+    const lastPage = sessionStorage.getItem('lastPage');
+    
+    if (!storedEmail || lastPage !== '/sign-up') {
+      navigate('/sign-up');
       return;
     }
     setEmail(storedEmail);

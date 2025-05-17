@@ -36,6 +36,7 @@ export default function Register() {
       }
 
       localStorage.setItem('verificationEmail', email);
+      sessionStorage.setItem('lastPage', '/sign-up');
       
       toast({
         title: "Verification email sent",
