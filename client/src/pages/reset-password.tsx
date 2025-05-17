@@ -20,6 +20,9 @@ export default function ResetPassword() {
       if (!token) {
         throw new Error('Reset token is missing');
       }
+      if (!newPassword) {
+        throw new Error('Please enter a new password');
+      }
 
       const response = await fetch('/api/auth/reset-password', {
         method: 'POST',

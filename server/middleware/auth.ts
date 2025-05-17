@@ -57,13 +57,17 @@ export async function resetPassword(req: Request, res: Response) {
     const [resetRequest] = await db
       .select()
       .from(passwordResets)
-      .where(eq(passwordResets.token, token));
+      .where(eq(passwordResets.token, token))
+      .limit(1);
       
     if (!resetRequest) {
+      console.error('Reset request not found for token:', token);
       return res.status(400).json({ message: 'Invalid reset token' });
     }
 
-    if (resetRequest.expiresAt < new Date()) {
+    const now = new Date();
+    if (resetRequest.expiresAt < now) {
+      console.error('Token expired at:', resetRequest.expiresAt, 'current time:', now);
       await db.delete(passwordResets).where(eq(passwordResets.token, token));
       return res.status(400).json({ message: 'Reset token has expired. Please request a new password reset.' });
     }
