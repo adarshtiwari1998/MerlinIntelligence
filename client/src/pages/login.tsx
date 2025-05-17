@@ -85,7 +85,7 @@ export default function Login() {
             <button
               type="button"
               className="text-blue-600 hover:text-blue-500 block w-full"
-              onClick={() => navigate('/forget')}
+              onClick={() => setLocation('/forget')}
             >
               Forgot your password?
             </button>
