@@ -17,22 +17,26 @@ export async function isAuthenticated(req: Request, res: Response, next: NextFun
 
 export async function login(req: Request, res: Response) {
   const { email, password } = req.body;
+
   try {
     const [user] = await db.select().from(users).where(eq(users.email, email));
+
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
     }
+
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Incorrect password' });
     }
+
     req.session.userId = user.id;
     req.session.save((err) => {
       if (err) {
         console.error('Session save error:', err);
         return res.status(500).json({ message: 'Error creating session' });
       }
-      res.json({
+      res.json({ 
         message: 'Logged in successfully',
         user: {
           id: user.id,
@@ -49,6 +53,7 @@ export async function login(req: Request, res: Response) {
 
 export async function resetPassword(req: Request, res: Response) {
   const { token, newPassword } = req.body;
+
   try {
     // Verify token and get user
     const [resetRequest] = await db
@@ -194,42 +199,41 @@ export async function register(req: Request, res: Response) {
           expiresAt: verificationExpiry
         })
         .returning();
+    let transporter: nodemailer.Transporter;
+    if (!transporter) {
+      transporter = nodemailer.createTransport({
+        host: "smtp.hostinger.com",
+        port: 465,
+        secure: true,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASSWORD
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+    }
 
-      let transporter: nodemailer.Transporter;
-      if (!transporter) {
-        transporter = nodemailer.createTransport({
-          host: "smtp.hostinger.com",
-          port: 465,
-          secure: true,
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASSWORD
-          },
-          tls: {
-            rejectUnauthorized: false
-          }
-        });
-      }
+    // Only send verification email if not already sent
+    if (!req.query.fromVerify) {
+      const verificationUrl = `${process.env.APP_URL}/verify?token=${verificationToken}`;
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Verify your email',
+        html: `
+          <h1>Welcome to our platform!</h1>
+          <p>Please click the link below to verify your account:</p>
+          <p><a href="${verificationUrl}">${verificationUrl}</a></p>
+          <p>This link will expire in 30 minutes.</p>
+        `
+      });
+    }
 
-      // Only send verification email if not already sent
-      if (!req.query.fromVerify) {
-        const verificationUrl = `${process.env.APP_URL}/verify?token=${verificationToken}`;
-        await transporter.sendMail({
-          from: process.env.EMAIL_USER,
-          to: email,
-          subject: 'Verify your email',
-          html: `
-            <h1>Welcome to our platform!</h1>
-            <p>Please click the link below to verify your account:</p>
-            <p><a href="${verificationUrl}">${verificationUrl}</a></p>
-            <p>This link will expire in 30 minutes.</p>
-          `
-        });
-      }
-
-      res.json({
+      res.json({ 
         message: 'Verification email sent',
-        email: email
+        email: email 
       });
     });
   } catch (error) {
@@ -267,7 +271,6 @@ export async function verifyEmail(req: Request, res: Response) {
       await db
         .delete(pendingUsers)
         .where(eq(pendingUsers.id, pendingUser.id));
-
       return res.status(400).json({ message: 'Verification link expired' });
     }
 
@@ -289,64 +292,62 @@ export async function verifyEmail(req: Request, res: Response) {
         .delete(pendingUsers)
         .where(eq(pendingUsers.id, pendingUser.id));
 
-      // Set session and save it
-      req.session.userId = user.id;
-      req.session.save((err) => {
-        if (err) {
-          console.error('Session save error:', err);
-          return res.status(500).json({ message: 'Error creating session' });
+    // Set session and save it
+    req.session.userId = user.id;
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.status(500).json({ message: 'Error creating session' });
+      }
+      res.json({ 
+        message: 'Email verified successfully',
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username
         }
-
-        res.json({
-          message: 'Email verified successfully',
-          user: {
-            id: user.id,
-            email: user.email,
-            username: user.username
-          }
-        });
       });
     });
-  } catch (error) {
-    console.error('Verification error:', error);
-    res.status(500).json({ message: 'Verification failed' });
-  }
+  });
+} catch (error) {
+  console.error('Verification error:', error);
+  res.status(500).json({ message: 'Verification failed' });
+}
 }
 
 export async function verifyRouteGuard(req: Request, res: Response, next: NextFunction) {
-  const token = req.query.token || req.query.code; // Check whether token or a code is provided
-
-  if (!token) {
-    return res.redirect('/sign-up');
-  }
-
-  const [pendingUser] = await db
-    .select()
-    .from(pendingUsers) // Ensure this is the correct model/table
-    .where(eq(pendingUsers.verificationToken, token))
-    .limit(1);
-
-  if (!pendingUser) {
-    return res.redirect('/sign-up');
-  }
-
-  if (pendingUser.expiresAt < new Date()) {
-    // Handle expired token logic
-    await db.delete(pendingUsers).where(eq(pendingUsers.id, pendingUser.id));
-    return res.redirect('/sign-up');
-  }
-
-  req.pendingUser = pendingUser; // Add the user to the request object
-  next(); // Continue to the next middleware
+    const token = req.query.token || req.query.code; // Check whether token or a code is provided
+    if (!token) {
+        return res.redirect('/sign-up');
+    }
+    const [pendingUser] = await db
+        .select()
+        .from('pendingUsers') // Ensure this is the correct model/table
+        .where({ verificationToken: token })
+        .limit(1);
+    if (!pendingUser) {
+        return res.redirect('/sign-up');
+    }
+    if (pendingUser.expiresAt < new Date()) {
+        // Handle expired token logic
+        await db.delete('pendingUsers').where({ id: pendingUser.id });
+        return res.redirect('/sign-up');
+    }
+    req.pendingUser = pendingUser; // Add the user to the request object
+    next(); // Continue to the next middleware
 }
 
 export async function checkVerificationToken(req: Request, res: Response) {
-  const { token } = req.query;
+  
   const sendEmail = req.query.sendEmail === 'true';
 
-  if (!token) {
+ 
+  if (sendEmail) {
+   
+  } else {
     return res.status(400).json({ error: 'Token or sendEmail required' });
   }
+}
 
   const [pendingUser] = await db
     .select()

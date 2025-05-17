@@ -8,94 +8,6 @@ export default function Verify() {
   const { toast } = useToast();
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'success' | 'error'>('pending');
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const token = params.get('token');
-    
-    if (!token) {
-      toast({
-        variant: "destructive",
-        title: "Missing verification token",
-        description: "Please use the link from your email"
-      });
-      navigate('/sign-up');
-      return;
-    }
-
-    // First verify the token is valid
-    fetch(`/api/auth/verify/check?token=${token}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) {
-          throw new Error(data.error);
-        }
-        setEmail(data.email);
-        return fetch('/api/auth/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token })
-        });
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.user) {
-          toast({
-            title: "Email verified",
-            description: "Redirecting to chat..."
-          });
-          setTimeout(() => navigate('/chat'), 1500);
-        }
-      })
-      .catch(error => {
-        toast({
-          variant: "destructive", 
-          title: "Verification failed",
-          description: error.message || "Please try signing up again"
-        });
-        navigate('/sign-up');
-      });
-      toast({
-        variant: "destructive", 
-        title: "Invalid verification link",
-        description: "Please try signing up again"
-      });
-      navigate('/sign-up');
-      return;
-    }
-
-    // Get email and trigger verification email
-    fetch(`/api/auth/verify/check?token=${token}&sendEmail=true`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.email) {
-          setEmail(data.email);
-          verifyEmail(token);
-        }
-      })
-      .catch(() => {
-        toast({
-          variant: "destructive",
-          title: "Invalid verification link",
-          description: "Please try signing up again"
-        });
-        navigate('/sign-up');
-      });
-
-    // Get email from storage
-    const storedEmail = localStorage.getItem('verificationEmail');
-    if (storedEmail) {
-      setEmail(storedEmail);
-    }
-
-    // Get verification params from URL
-    const mode = params.get('mode');
-    const code = params.get('code');
-
-    if (mode === 'verifyEmail' && code) {
-      verifyEmail(code);
-    }
-  }, []);
-
   const verifyEmail = async (code: string) => {
     try {
       const response = await fetch('/api/auth/verify', {
@@ -103,9 +15,7 @@ export default function Verify() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: code })
       });
-
       const data = await response.json();
-
       if (response.ok) {
         setVerificationStatus('success');
         toast({
@@ -128,6 +38,49 @@ export default function Verify() {
     }
   };
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('code');
+    const mode = params.get('mode');
+
+    // Attempt to get the email from local storage first
+    let storedEmail = localStorage.getItem('verificationEmail');
+
+    // If there is no stored email, fetch it from /api/auth/verify/check
+    if (!storedEmail && token) {
+      fetch(`/api/auth/verify/check?token=${token}&sendEmail=true`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.email) {
+            setEmail(data.email);
+            storedEmail = data.email; // Update storedEmail with the fetched email
+            verifyEmail(token); // Verify email directly using the token
+          } else {
+            throw new Error("Email not found");
+          }
+        })
+        .catch(() => {
+          toast({
+            variant: "destructive",
+            title: "Invalid verification link",
+            description: "Please try signing up again"
+          });
+          navigate('/sign-up');
+        });
+    }
+
+    // If we have a stored email, set the state
+    if (storedEmail) {
+      setEmail(storedEmail);
+    }
+
+    // If mode is verifyEmail and we have a code, verify the email
+    if (mode === 'verifyEmail' && token) {
+      verifyEmail(token);
+    }
+  }, [location.search, navigate, toast]);
+
+
   const handleResend = async () => {
     try {
       await fetch('/api/auth/resend-verification', {
@@ -135,7 +88,6 @@ export default function Verify() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
       });
-
       toast({
         title: "Email sent",
         description: "Verification email has been resent"
@@ -165,7 +117,7 @@ export default function Verify() {
           </button>
           <p className="mt-2 text-sm text-gray-500">
             Can't see an email? Check your spam or{' '}
-            <button 
+            <button
               onClick={() => navigate('/sign-up')}
               className="text-blue-600 hover:underline"
             >
