@@ -77,7 +77,7 @@ export default function Login() {
             <button
               type="button"
               className="text-blue-600 hover:text-blue-500 block w-full"
-              onClick={() => navigate('/sign-up')}
+              onClick={() => { window.location.href = '/sign-up'; }}
             >
               Don't have an account? Register
             </button>
