@@ -18,11 +18,18 @@ export default function Login() {
     try {
       if (isRegistering) {
         await register(email, username, password);
+        setLocation('/chat');
       } else {
         await login(email, password);
+        setLocation('/chat');
       }
     } catch (error) {
       console.error('Auth error:', error);
+      toast({
+        title: "Error",
+        description: "Login failed. Please check your credentials.",
+        variant: "destructive"
+      });
     }
   };
 
