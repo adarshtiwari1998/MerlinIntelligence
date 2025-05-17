@@ -13,9 +13,9 @@ export async function isAuthenticated(req: Request, res: Response, next: NextFun
 }
 
 export async function login(req: Request, res: Response) {
-  const { username, password } = req.body;
+  const { email, password } = req.body;
   
-  const [user] = await db.select().from(users).where(eq(users.username, username));
+  const [user] = await db.select().from(users).where(eq(users.email, email));
   
   if (!user || !await bcrypt.compare(password, user.password)) {
     return res.status(401).json({ message: 'Invalid credentials' });
@@ -26,14 +26,14 @@ export async function login(req: Request, res: Response) {
 }
 
 export async function register(req: Request, res: Response) {
-  const { username, password } = req.body;
+  const { email, username, password } = req.body;
   
   const hashedPassword = await bcrypt.hash(password, 10);
   
   try {
     const [user] = await db
       .insert(users)
-      .values({ username, password: hashedPassword })
+      .values({ email, username, password: hashedPassword })
       .returning();
       
     req.session.userId = user.id;
