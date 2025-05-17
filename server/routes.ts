@@ -34,6 +34,8 @@ export async function registerRoutes(app: Express, llmGateway: LLMGateway): Prom
         res.json({ status: "ok" });
     });
 
+    app.get("/api/auth/verify/check", checkVerificationToken);
+
     // LLM gateway route
     app.post("/api/llm", async (req: Request, res: Response) => {
         try {

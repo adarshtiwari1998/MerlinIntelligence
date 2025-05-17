@@ -26,7 +26,23 @@ export default function Verify() {
       return;
     }
 
-    verifyEmail(code);
+    // Get email from token verification
+    fetch(`/api/auth/verify/check?token=${token}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.email) {
+          setEmail(data.email);
+          verifyEmail(token);
+        }
+      })
+      .catch(() => {
+        toast({
+          variant: "destructive",
+          title: "Invalid verification link",
+          description: "Please try signing up again"
+        });
+        navigate('/sign-up');
+      });
 
     // Get email from storage
     const storedEmail = localStorage.getItem('verificationEmail');
