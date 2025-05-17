@@ -177,24 +177,23 @@ export async function register(req: Request, res: Response) {
 
     // Using a transaction to ensure data consistency
     await db.transaction(async (tx) => {
-      const [user] = // Store in pending users table
-    await tx
-        .insert(pendingUsers)
+      // First insert into users table
+      const [user] = await tx
+        .insert(users)
         .values({ 
           email,
           username,
           password: hashedPassword,
-          verificationToken,
-          expiresAt: verificationExpiry
+          verified: false
         })
         .returning();
 
-    // Store verification code
-    await tx.insert(verificationCodes).values({
-      userId: user.id,
-      code: verificationToken,
-      expiresAt: verificationExpiry
-    });
+      // Then create verification code
+      await tx.insert(verificationCodes).values({
+        userId: user.id,
+        code: verificationToken,
+        expiresAt: verificationExpiry
+      });
     let transporter: nodemailer.Transporter;
     if (!transporter) {
       transporter = nodemailer.createTransport({
@@ -308,10 +307,10 @@ export async function verifyRouteGuard(req: Request, res: Response, next: NextFu
   const referrer = req.headers.referer;
   const isFromSignup = referrer?.includes('/sign-up');
   const hasValidToken = req.query.token || (req.query.mode === 'verifyEmail' && req.query.code);
-  
+
   if (!isFromSignup && !hasValidToken) {
     return res.status(403).json({ message: 'Access denied' });
   }
-  
+
   next();
 }
