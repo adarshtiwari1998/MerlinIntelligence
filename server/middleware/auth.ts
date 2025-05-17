@@ -66,11 +66,21 @@ export async function resetPassword(req: Request, res: Response) {
     }
 
     const now = new Date();
+    // Create expiration date 30 minutes from now
+    const expirationDate = new Date();
+    expirationDate.setMinutes(expirationDate.getMinutes() + 30);
+    
     if (resetRequest.expiresAt < now) {
       console.error('Token expired at:', resetRequest.expiresAt, 'current time:', now);
       await db.delete(passwordResets).where(eq(passwordResets.token, token));
       return res.status(400).json({ message: 'Reset token has expired. Please request a new password reset.' });
     }
+
+    // Update token expiration
+    await db
+      .update(passwordResets)
+      .set({ expiresAt: expirationDate })
+      .where(eq(passwordResets.token, token));
 
     // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
