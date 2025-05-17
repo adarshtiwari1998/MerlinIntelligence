@@ -4,8 +4,10 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Login() {
+  const { toast } = useToast();
   const [_, setLocation] = useLocation();
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
