@@ -108,7 +108,7 @@ export class MemStorage implements IStorage {
 }
 
 // Database storage implementation
-const { db } = require("./db");
+import { db } from "./db";
 import { users, aiRequests, aiResponses } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
