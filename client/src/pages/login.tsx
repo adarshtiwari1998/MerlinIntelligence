@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useLocation } from 'wouter';
 
 export default function Login() {
   const [email, setEmail] = useState('');

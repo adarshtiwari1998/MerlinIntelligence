@@ -11,7 +11,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     if (!isAuthenticated) {
       navigate('/login');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated]);
 
   return isAuthenticated ? <>{children}</> : null;
 }
