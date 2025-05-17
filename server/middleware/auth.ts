@@ -215,7 +215,7 @@ export async function register(req: Request, res: Response) {
       });
     }
 
-    const verificationUrl = `${process.env.APP_URL}/action-code?mode=verifyEmail&code=${verificationToken}`;
+    const verificationUrl = `${process.env.APP_URL}/verify?mode=verifyEmail&code=${verificationToken}`;
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,

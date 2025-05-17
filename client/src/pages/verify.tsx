@@ -10,11 +10,14 @@ export default function Verify() {
 
   // Check if we have a valid token
   const params = new URLSearchParams(location.search);
-  const hasValidToken = params.get('token') || (params.get('mode') === 'verifyEmail' && params.get('code'));
+  const code = params.get('code');
+  const hasValidToken = code && params.get('mode') === 'verifyEmail';
 
   useEffect(() => {
+    const code = params.get('code');
+    
     // Redirect to signup if no token
-    if (!hasValidToken) {
+    if (!code || params.get('mode') !== 'verifyEmail') {
       toast({
         variant: "destructive",
         title: "Invalid verification link",
@@ -23,6 +26,8 @@ export default function Verify() {
       navigate('/sign-up');
       return;
     }
+    
+    verifyEmail(code);
 
     // Get email from storage
     const storedEmail = localStorage.getItem('verificationEmail');
