@@ -1,11 +1,11 @@
-import { 
-  User, 
-  InsertUser, 
-  AiRequest, 
-  InsertAiRequest, 
-  AiResponse, 
-  InsertAiResponse 
-} from "@shared/schema";
+const { 
+  users,
+  aiRequests,
+  aiResponses,
+  insertUserSchema,
+  insertAiRequestSchema,
+  insertAiResponseSchema
+} = require("@shared/schema");
 
 // Interface for storage operations
 export interface IStorage {
@@ -107,7 +107,7 @@ export class MemStorage implements IStorage {
 }
 
 // Database storage implementation
-import { db } from "./db";
+const { db } = require("./db");
 import { users, aiRequests, aiResponses } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
