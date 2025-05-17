@@ -8,12 +8,8 @@ export default function Verify() {
   const { toast } = useToast();
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'success' | 'error'>('pending');
 
-  // Check if we have a valid token
-  const params = new URLSearchParams(location.search);
-  const code = params.get('code');
-  const hasValidToken = code && params.get('mode') === 'verifyEmail';
-
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
     const token = params.get('token') || (params.get('mode') === 'verifyEmail' && params.get('code'));
 
     if (!token) {
