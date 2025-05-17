@@ -6,7 +6,7 @@ export default function Verify() {
   const [email, setEmail] = useState('');
   const [location, navigate] = useLocation();
   const { toast } = useToast();
-  const [verificationStatus, setVerificationStatus<'pending' | 'success' | 'error'>('pending');
+  const [verificationStatus, setVerificationStatus] = useState<'pending' | 'success' | 'error'>('pending');
 
   // Check if we have a valid token
   const params = new URLSearchParams(location.search);
