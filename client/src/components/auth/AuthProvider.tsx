@@ -66,13 +66,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     const data = await response.json();
     
-    if (response.ok) {
-      setUser(data.user);
-      setIsAuthenticated(true);
-      navigate('/chat');
-    } else {
+    if (!response.ok) {
       throw new Error(data.message || 'Registration failed');
     }
+    
+    return data;
   };
 
   const logout = async () => {

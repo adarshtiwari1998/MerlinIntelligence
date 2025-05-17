@@ -30,6 +30,9 @@ export default function Register() {
         title: "Verification email sent",
         description: "Please check your email and enter the verification code"
       });
+      
+      // Explicitly navigate to verification route
+      navigate('/verify');
     } catch (error) {
       toast({
         variant: "destructive",
