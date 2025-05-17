@@ -17,6 +17,10 @@ export default function ResetPassword() {
     setLoading(true);
     
     try {
+      if (!token) {
+        throw new Error('Reset token is missing');
+      }
+
       const response = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -32,7 +36,7 @@ export default function ResetPassword() {
         });
         navigate('/login');
       } else {
-        throw new Error('Failed to reset password');
+        throw new Error(data.message || 'Failed to reset password');
       }
     } catch (error) {
       toast({

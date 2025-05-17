@@ -59,8 +59,13 @@ export async function resetPassword(req: Request, res: Response) {
       .from(passwordResets)
       .where(eq(passwordResets.token, token));
       
-    if (!resetRequest || resetRequest.expiresAt < new Date()) {
-      return res.status(400).json({ message: 'Invalid or expired token' });
+    if (!resetRequest) {
+      return res.status(400).json({ message: 'Invalid reset token' });
+    }
+
+    if (resetRequest.expiresAt < new Date()) {
+      await db.delete(passwordResets).where(eq(passwordResets.token, token));
+      return res.status(400).json({ message: 'Reset token has expired. Please request a new password reset.' });
     }
 
     // Hash new password
