@@ -141,16 +141,22 @@ export async function resetPassword(req: Request, res: Response) {
 
 export async function register(req: Request, res: Response) {
   const { email, username, password } = req.body;
-  
+
   if (!email || !username || !password) {
     return res.status(400).json({ message: 'All fields are required' });
   }
 
   try {
-    // Check if user already exists
-    const existingUser = await db.select().from(users).where(eq(users.email, email));
-    if (existingUser.length > 0) {
+    // Check if user already exists by email and username
+    const existingUserEmail = await db.select().from(users).where(eq(users.email, email));
+    const existingUserUsername = await db.select().from(users).where(eq(users.username, username));
+
+    if (existingUserEmail.length > 0) {
       return res.status(400).json({ message: 'Email already registered' });
+    }
+
+    if (existingUserUsername.length > 0) {
+      return res.status(400).json({ message: 'Username already taken' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -198,11 +204,11 @@ export async function register(req: Request, res: Response) {
         <p>This code will expire in 30 minutes.</p>
       `
     });
-      
+
     res.json({ message: 'Verification email sent' });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(400).json({ message: 'Registration failed' });
+    res.status(500).json({ message: 'Registration failed' });
   }
 }
 

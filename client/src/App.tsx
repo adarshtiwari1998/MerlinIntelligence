@@ -8,6 +8,7 @@ import Register from '@/pages/register';
 import ForgotPassword from '@/pages/forgot-password';
 import NotFound from '@/pages/not-found';
 import ResetPassword from '@/pages/reset-password';
+import Verify from '@/pages/verify';
 
 export default function App() {
   return (
