@@ -12,14 +12,17 @@ export default function Verify() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const storedEmail = localStorage.getItem('verificationEmail');
-    const lastPage = sessionStorage.getItem('lastPage');
-    
-    if (!storedEmail || lastPage !== '/sign-up') {
-      navigate('/sign-up');
-      return;
-    }
-    setEmail(storedEmail);
+    // Check session status
+    fetch('/api/auth/verify-status')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.pendingRegistration) {
+          navigate('/sign-up');
+          return;
+        }
+        setEmail(data.pendingRegistration.email);
+      })
+      .catch(() => navigate('/sign-up'));
   }, [navigate]);
 
   const handleVerify = async () => {

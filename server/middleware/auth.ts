@@ -149,6 +149,14 @@ export async function register(req: Request, res: Response) {
     return res.status(400).json({ message: 'All fields are required' });
   }
 
+  // Store registration data in session
+  req.session.pendingRegistration = {
+    email,
+    username,
+    password,
+    timestamp: Date.now()
+  };
+
   try {
     // Check if user already exists by email and username
     const existingUserEmail = await db.select().from(users).where(eq(users.email, email));
