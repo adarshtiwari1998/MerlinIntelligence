@@ -76,6 +76,25 @@ export const modelResponseSchema = z.object({
 
 export type ModelResponse = z.infer<typeof modelResponseSchema>;
 
+// Conversation schema
+export const conversationSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  messages: z.array(z.object({
+    id: z.string(),
+    role: z.enum(["user", "assistant", "system"]),
+    content: z.string(),
+    timestamp: z.date(),
+    modelUsed: z.string().optional(),
+    tokens: z.number().optional(),
+    latency: z.number().optional(),
+  }))
+});
+
+export type Conversation = z.infer<typeof conversationSchema>;
+
 // Message schema for UI
 export const messageSchema = z.object({
   id: z.string(),

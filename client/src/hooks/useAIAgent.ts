@@ -44,8 +44,28 @@ function needsVisualResponse(prompt: string): boolean {
 }
 
 export function useAIAgent() {
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  const createNewConversation = () => {
+    const newConversation: Conversation = {
+      id: Date.now().toString(),
+      title: "New Conversation",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      messages: []
+    };
+    setConversations(prev => [...prev, newConversation]);
+    setCurrentConversation(newConversation);
+    setMessages([]);
+  };
+
+  const selectConversation = (conversation: Conversation) => {
+    setCurrentConversation(conversation);
+    setMessages(conversation.messages);
+  };
 
   const sendMessage = async (request: ModelRequest): Promise<ModelResponse | null> => {
     setIsLoading(true);
@@ -217,5 +237,9 @@ export function useAIAgent() {
     isLoading,
     sendMessage,
     clearMessages,
+    conversations,
+    currentConversation,
+    createNewConversation,
+    selectConversation
   };
 }
