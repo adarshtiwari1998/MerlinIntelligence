@@ -22,8 +22,8 @@ export default function Verify() {
       return;
     }
 
-    // Get email from token verification
-    fetch(`/api/auth/verify/check?token=${token}`)
+    // Get email and trigger verification email
+    fetch(`/api/auth/verify/check?token=${token}&sendEmail=true`)
       .then(res => res.json())
       .then(data => {
         if (data.email) {

@@ -341,6 +341,7 @@ export async function verifyRouteGuard(req: Request, res: Response, next: NextFu
 
 export async function checkVerificationToken(req: Request, res: Response) {
   const token = req.query.token || (req.query.mode === 'verifyEmail' && req.query.code);
+  const sendEmail = req.query.sendEmail === 'true';
 
   if (!token) {
     return res.status(400).json({ error: 'Token required' });
@@ -354,6 +355,34 @@ export async function checkVerificationToken(req: Request, res: Response) {
 
   if (!pendingUser || pendingUser.expiresAt < new Date()) {
     return res.status(404).json({ error: 'Invalid or expired token' });
+  }
+
+  if (sendEmail) {
+    const transporter = nodemailer.createTransport({
+      host: "smtp.hostinger.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
+
+    const verificationUrl = `${process.env.APP_URL}/verify?mode=verifyEmail&code=${token}`;
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: pendingUser.email,
+      subject: 'Verify your email',
+      html: `
+        <h1>Welcome to our platform!</h1>
+        <p>Please click the link below to verify your account:</p>
+        <p><a href="${verificationUrl}">${verificationUrl}</a></p>
+        <p>This link will expire in 30 minutes.</p>
+      `
+    });
   }
 
   res.json({ email: pendingUser.email });
