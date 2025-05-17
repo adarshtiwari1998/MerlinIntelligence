@@ -1,10 +1,11 @@
-
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../db';
 import { users, verificationCodes } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
+import { passwordResets } from '@shared/schema';
+import { desc } from 'drizzle-orm';
 
 export async function isAuthenticated(req: Request, res: Response, next: NextFunction) {
   if (!req.session.userId) {
@@ -15,10 +16,10 @@ export async function isAuthenticated(req: Request, res: Response, next: NextFun
 
 export async function login(req: Request, res: Response) {
   const { email, password } = req.body;
-  
+
   try {
     const [user] = await db.select().from(users).where(eq(users.email, email));
-    
+
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
     }
@@ -27,7 +28,7 @@ export async function login(req: Request, res: Response) {
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Incorrect password' });
     }
-    
+
     req.session.userId = user.id;
     req.session.save((err) => {
       if (err) {
@@ -51,7 +52,7 @@ export async function login(req: Request, res: Response) {
 
 export async function resetPassword(req: Request, res: Response) {
   const { token, newPassword } = req.body;
-  
+
   try {
     // Verify token and get user
     const [resetRequest] = await db
@@ -59,14 +60,14 @@ export async function resetPassword(req: Request, res: Response) {
       .from(passwordResets)
       .where(eq(passwordResets.token, token))
       .limit(1);
-      
+
     if (!resetRequest) {
       console.error('Reset request not found for token:', token);
       return res.status(400).json({ message: 'Invalid reset token' });
     }
 
     const now = new Date();
-    
+
     // Check if token is expired
     if (resetRequest.expiresAt < now) {
       console.error('Token expired at:', resetRequest.expiresAt, 'current time:', now);
@@ -102,21 +103,23 @@ export async function resetPassword(req: Request, res: Response) {
         .select()
         .from(users)
         .where(eq(users.id, resetRequest.userId));
-
-      // Send confirmation email
-      const transporter = nodemailer.createTransport({
-        host: "smtp.hostinger.com",
-        port: 465,
-        secure: true,
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASSWORD
-        },
-        tls: {
-          rejectUnauthorized: false
-        }
-      });
-
+      
+      let transporter: nodemailer.Transporter;
+      if (!transporter) {
+        transporter = nodemailer.createTransport({
+          host: "smtp.hostinger.com",
+          port: 465,
+          secure: true,
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASSWORD
+          },
+          tls: {
+            rejectUnauthorized: false
+          }
+        });
+      }
+      
       await transporter.sendMail({
         from: process.env.EMAIL_USER,
         to: user.email,
@@ -181,20 +184,21 @@ export async function register(req: Request, res: Response) {
       code: verificationCode,
       expiresAt: verificationExpiry
     });
-
-    // Send verification email
-    const transporter = nodemailer.createTransport({
-      host: "smtp.hostinger.com",
-      port: 465,
-      secure: true,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
-    });
+    let transporter: nodemailer.Transporter;
+    if (!transporter) {
+      transporter = nodemailer.createTransport({
+        host: "smtp.hostinger.com",
+        port: 465,
+        secure: true,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASSWORD
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+    }
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -215,18 +219,6 @@ export async function register(req: Request, res: Response) {
       });
 
       // Send verification email
-      const transporter = nodemailer.createTransport({
-        host: "smtp.hostinger.com",
-        port: 465,
-        secure: true,
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASSWORD
-        },
-        tls: {
-          rejectUnauthorized: false
-        }
-      });
 
       await transporter.sendMail({
         from: process.env.EMAIL_USER,
@@ -301,7 +293,7 @@ export async function verifyEmail(req: Request, res: Response) {
 
     // Set session
     req.session.userId = user.id;
-    
+
     res.json({ message: 'Email verified successfully' });
   } catch (error) {
     console.error('Verification error:', error);
