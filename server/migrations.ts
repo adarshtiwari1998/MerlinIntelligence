@@ -1,5 +1,5 @@
+
 import { db } from './db';
-import * as schema from '@shared/schema';
 import { sql } from 'drizzle-orm';
 
 async function main() {
@@ -13,10 +13,10 @@ async function main() {
         "sess" json NOT NULL,
         "expire" timestamp(6) NOT NULL,
         CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
-      );
+      )
     `);
 
-    // Create users table with verified column
+    // Create users table
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -25,7 +25,7 @@ async function main() {
         password TEXT NOT NULL,
         verified BOOLEAN NOT NULL DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
+      )
     `);
 
     // Create verification_codes table
@@ -36,10 +36,10 @@ async function main() {
         code TEXT NOT NULL,
         expires_at TIMESTAMP NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
+      )
     `);
 
-    // Create password_resets table  
+    // Create password_resets table
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS password_resets (
         id SERIAL PRIMARY KEY,
@@ -48,7 +48,7 @@ async function main() {
         expires_at TIMESTAMP NOT NULL,
         used BOOLEAN NOT NULL DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
+      )
     `);
 
     // Create conversation_history table
@@ -59,7 +59,7 @@ async function main() {
         title TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
+      )
     `);
 
     // Create messages table
@@ -73,7 +73,7 @@ async function main() {
         model_used TEXT,
         tokens INTEGER,
         latency INTEGER
-      );
+      )
     `);
 
     // Create ai_requests table
@@ -87,7 +87,7 @@ async function main() {
         max_tokens INTEGER DEFAULT 1000,
         temperature TEXT DEFAULT '0.7',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
+      )
     `);
 
     // Create ai_responses table
@@ -100,7 +100,7 @@ async function main() {
         tokens_used INTEGER,
         latency_ms INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
+      )
     `);
 
     console.log('Database tables created successfully');
