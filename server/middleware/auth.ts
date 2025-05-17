@@ -179,7 +179,7 @@ export async function register(req: Request, res: Response) {
         .returning();
 
     // Store verification code
-    await db.insert(verificationCodes).values({
+    await tx.insert(verificationCodes).values({
       userId: user.id,
       code: verificationCode,
       expiresAt: verificationExpiry
