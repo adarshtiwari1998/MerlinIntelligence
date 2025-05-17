@@ -177,23 +177,28 @@ export async function register(req: Request, res: Response) {
 
     // Using a transaction to ensure data consistency
     await db.transaction(async (tx) => {
-      // First insert into users table
-      const [user] = await tx
-        .insert(users)
-        .values({ 
+      // First check if email exists in users table
+      const existingUser = await tx
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+
+      if (existingUser.length > 0) {
+        throw new Error('Email already registered');
+      }
+
+      // Insert into pending_users table
+      const [pendingUser] = await tx
+        .insert(pendingUsers)
+        .values({
           email,
           username,
           password: hashedPassword,
-          verified: false
+          verificationToken,
+          expiresAt: verificationExpiry
         })
         .returning();
-
-      // Then create verification code
-      await tx.insert(verificationCodes).values({
-        userId: user.id,
-        code: verificationToken,
-        expiresAt: verificationExpiry
-      });
     let transporter: nodemailer.Transporter;
     if (!transporter) {
       transporter = nodemailer.createTransport({
@@ -247,40 +252,42 @@ export async function verifyEmail(req: Request, res: Response) {
   const { token } = req.body;
 
   try {
-    const [verificationRecord] = await db
+    // Find pending user with this verification token
+    const [pendingUser] = await db
       .select()
-      .from(verificationCodes)
-      .where(eq(verificationCodes.code, token))
-      .orderBy(desc(verificationCodes.createdAt))
+      .from(pendingUsers)
+      .where(eq(pendingUsers.verificationToken, token))
       .limit(1);
 
-    if (!verificationRecord) {
+    if (!pendingUser) {
       return res.status(404).json({ message: 'Verification token not found' });
     }
 
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, verificationRecord.userId));
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    if (pendingUser.expiresAt < new Date()) {
+      // Delete expired pending user
+      await db
+        .delete(pendingUsers)
+        .where(eq(pendingUsers.id, pendingUser.id));
+      return res.status(400).json({ message: 'Verification link expired' });
     }
 
-    if (verificationRecord.expiresAt < new Date()) {
-      return res.status(400).json({ message: 'Verification code expired' });
-    }
+    // Move user from pending to active in a transaction
+    await db.transaction(async (tx) => {
+      // Create verified user
+      const [user] = await tx
+        .insert(users)
+        .values({
+          email: pendingUser.email,
+          username: pendingUser.username,
+          password: pendingUser.password,
+          verified: true
+        })
+        .returning();
 
-    // Mark user as verified
-    await db
-      .update(users)
-      .set({ verified: true })
-      .where(eq(users.id, user.id));
-
-    // Delete used verification code
-    await db
-      .delete(verificationCodes)
-      .where(eq(verificationCodes.id, verificationRecord.id));
+      // Delete pending user
+      await tx
+        .delete(pendingUsers)
+        .where(eq(pendingUsers.id, pendingUser.id));
 
     // Set session and save it
     req.session.userId = user.id;
