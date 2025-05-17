@@ -10,21 +10,14 @@ export default function Login() {
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
   const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [isRegistering, setIsRegistering] = useState(false);
-  const { login, register } = useAuth();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (isRegistering) {
-        await register(email, username, password);
-        setLocation('/chat');
-      } else {
-        await login(email, password);
-        setLocation('/chat');
-      }
+      await login(email, password);
+      setLocation('/chat');
     } catch (error) {
       console.error('Auth error:', error);
       toast({
@@ -40,7 +33,7 @@ export default function Login() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-gray-100">
-            {isRegistering ? 'Create an account' : 'Sign in to your account'}
+            Sign in to your account
           </h2>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -54,17 +47,6 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            {isRegistering && (
-              <div>
-                <Input
-                  type="text"
-                  required
-                  placeholder="Username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
-              </div>
-            )}
             <div>
               <Input
                 type="password"
