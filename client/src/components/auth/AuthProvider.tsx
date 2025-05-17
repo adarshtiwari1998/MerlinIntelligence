@@ -58,10 +58,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ email, username, password })
     });
     
+    const data = await response.json();
+    
     if (response.ok) {
-      await login(username, password);
+      setUser(data.user);
+      setIsAuthenticated(true);
+      navigate('/chat');
     } else {
-      throw new Error('Registration failed');
+      throw new Error(data.message || 'Registration failed');
     }
   };
 
