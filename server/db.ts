@@ -1,7 +1,7 @@
 
-const { Pool } = require('pg');
-const { drizzle } = require('drizzle-orm/node-postgres');
-const schema = require("@shared/schema");
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import * as schema from "@shared/schema";
 
 const pool = new Pool({
   host: process.env.PGHOST,
@@ -12,6 +12,5 @@ const pool = new Pool({
   ssl: true
 });
 
-const db = drizzle(pool, { schema });
-
-module.exports = { db, pool };
+export const db = drizzle(pool, { schema });
+export { pool };
