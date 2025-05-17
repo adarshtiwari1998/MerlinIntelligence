@@ -21,8 +21,8 @@ export default function Login() {
     } catch (error) {
       console.error('Auth error:', error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Login failed. Please check your credentials.",
+        title: "Login Failed",
+        description: "Invalid email or password. Please try again or reset your password.",
         variant: "destructive"
       });
     }

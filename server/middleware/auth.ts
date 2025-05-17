@@ -19,12 +19,12 @@ export async function login(req: Request, res: Response) {
     const [user] = await db.select().from(users).where(eq(users.email, email));
     
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'User not found' });
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Incorrect password' });
     }
     
     req.session.userId = user.id;

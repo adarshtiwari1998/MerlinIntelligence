@@ -23,10 +23,12 @@ export default function ResetPassword() {
         body: JSON.stringify({ token, newPassword })
       });
       
+      const data = await response.json();
       if (response.ok) {
         toast({
           title: "Password reset successful",
-          description: "You can now login with your new password"
+          description: "Password updated and confirmation email sent. You can now login with your new password.",
+          variant: "default"
         });
         navigate('/login');
       } else {
