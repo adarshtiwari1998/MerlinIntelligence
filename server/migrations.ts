@@ -23,7 +23,8 @@ async function main() {
         username TEXT NOT NULL UNIQUE,
         email TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL,
-        verified BOOLEAN NOT NULL DEFAULT FALSE
+        verified BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
@@ -38,7 +39,7 @@ async function main() {
       );
     `);
 
-    // Create password_resets table
+    // Create password_resets table  
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS password_resets (
         id SERIAL PRIMARY KEY,
