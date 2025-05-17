@@ -1,11 +1,12 @@
-const { 
-  users,
-  aiRequests,
-  aiResponses,
-  insertUserSchema,
-  insertAiRequestSchema,
-  insertAiResponseSchema
-} = require("@shared/schema");
+import type { 
+  User, 
+  InsertUser, 
+  AiRequest, 
+  InsertAiRequest, 
+  AiResponse, 
+  InsertAiResponse 
+} from "@shared/schema";
+import { users, aiRequests, aiResponses } from "@shared/schema";
 
 // Interface for storage operations
 export interface IStorage {
