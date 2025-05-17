@@ -1,0 +1,88 @@
+
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'wouter';
+
+interface AuthContextType {
+  isAuthenticated: boolean;
+  user: any | null;
+  login: (username: string, password: string) => Promise<void>;
+  register: (username: string, password: string) => Promise<void>;
+  logout: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [location, navigate] = useLocation();
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/check');
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+        setIsAuthenticated(true);
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+    }
+  };
+
+  const login = async (username: string, password: string) => {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      setUser(data.user);
+      setIsAuthenticated(true);
+      navigate('/chat');
+    } else {
+      throw new Error('Login failed');
+    }
+  };
+
+  const register = async (username: string, password: string) => {
+    const response = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    
+    if (response.ok) {
+      await login(username, password);
+    } else {
+      throw new Error('Registration failed');
+    }
+  };
+
+  const logout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    setUser(null);
+    setIsAuthenticated(false);
+    navigate('/');
+  };
+
+  return (
+    <AuthContext.Provider value={{ isAuthenticated, user, login, register, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};

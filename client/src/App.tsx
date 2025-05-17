@@ -1,25 +1,29 @@
-import { Switch, Route } from "wouter";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/not-found";
-import Home from "@/pages/home";
 
-function Router() {
+import { Route, Switch } from 'wouter';
+import { AuthProvider } from '@/components/auth/AuthProvider';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { ThemeProvider } from '@/components/ui/theme-provider';
+import { Toaster } from '@/components/ui/toaster';
+import Home from '@/pages/home';
+import Login from '@/pages/login';
+import NotFound from '@/pages/not-found';
+
+export default function App() {
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route component={NotFound} />
-    </Switch>
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <AuthProvider>
+        <Switch>
+          <Route path="/login" component={Login} />
+          <Route path="/chat">
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/" component={Login} />
+          <Route component={NotFound} />
+        </Switch>
+        <Toaster />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
-
-function App() {
-  return (
-    <TooltipProvider>
-      <Toaster />
-      <Router />
-    </TooltipProvider>
-  );
-}
-
-export default App;
