@@ -1,11 +1,10 @@
-
 import { db } from './db';
 import * as schema from '@shared/schema';
 import { sql } from 'drizzle-orm';
 
 async function main() {
   console.log('Creating database tables...');
-  
+
   try {
     // Create session table
     await db.execute(sql`
@@ -16,13 +15,38 @@ async function main() {
         CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
       );
     `);
-    // Create users table
+
+    // Create users table with verified column
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         username TEXT NOT NULL UNIQUE,
         email TEXT NOT NULL UNIQUE,
-        password TEXT NOT NULL
+        password TEXT NOT NULL,
+        verified BOOLEAN NOT NULL DEFAULT FALSE
+      );
+    `);
+
+    // Create verification_codes table
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS verification_codes (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        code TEXT NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Create password_resets table
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS password_resets (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        token TEXT NOT NULL UNIQUE,
+        expires_at TIMESTAMP NOT NULL,
+        used BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
@@ -80,7 +104,7 @@ async function main() {
 
     console.log('Database tables created successfully');
   } catch (error) {
-    console.error('Error creating database tables:', error);
+    console.error('Error creating tables:', error);
     process.exit(1);
   }
 }
