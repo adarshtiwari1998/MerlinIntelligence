@@ -156,3 +156,12 @@ export const taskTypeSchema = z.enum([
 ]);
 
 export type TaskType = z.infer<typeof taskTypeSchema>;
+export const pendingUsers = pgTable('pending_users', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email').notNull().unique(),
+  username: text('username').notNull().unique(),
+  password: text('password').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  verificationToken: text('verification_token').notNull(),
+  expiresAt: timestamp('expires_at').notNull()
+});

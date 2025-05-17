@@ -177,13 +177,15 @@ export async function register(req: Request, res: Response) {
 
     // Using a transaction to ensure data consistency
     await db.transaction(async (tx) => {
-      const [user] = await tx
-        .insert(users)
+      const [user] = // Store in pending users table
+    await tx
+        .insert(pendingUsers)
         .values({ 
-          email, 
-          username, 
+          email,
+          username,
           password: hashedPassword,
-          verified: false
+          verificationToken,
+          expiresAt: verificationExpiry
         })
         .returning();
 
@@ -209,7 +211,7 @@ export async function register(req: Request, res: Response) {
       });
     }
 
-    const verificationUrl = `${process.env.APP_URL}/verify?token=${verificationToken}`;
+    const verificationUrl = `${process.env.APP_URL}/action-code?mode=verifyEmail&code=${verificationToken}`;
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
@@ -301,4 +303,15 @@ export async function verifyEmail(req: Request, res: Response) {
     console.error('Verification error:', error);
     res.status(500).json({ message: 'Verification failed' });
   }
+}
+export async function verifyRouteGuard(req: Request, res: Response, next: NextFunction) {
+  const referrer = req.headers.referer;
+  const isFromSignup = referrer?.includes('/sign-up');
+  const hasValidToken = req.query.token || (req.query.mode === 'verifyEmail' && req.query.code);
+  
+  if (!isFromSignup && !hasValidToken) {
+    return res.status(403).json({ message: 'Access denied' });
+  }
+  
+  next();
 }

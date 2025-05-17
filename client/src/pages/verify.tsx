@@ -7,49 +7,56 @@ export default function Verify() {
   const [email, setEmail] = useState('');
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const [verificationStatus, setVerificationStatus] = useState<'pending' | 'success' | 'error'>('pending');
 
   useEffect(() => {
-    // Get verification token from URL if present
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-
-    if (token) {
-      // Verify the token
-      fetch('/api/auth/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token })
-      })
-      .then(async res => {
-        const data = await res.json();
-        if (res.ok) {
-          toast({
-            title: "Email verified",
-            description: "Verification successful! Redirecting to chat..."
-          });
-          // Clear verification email from storage
-          localStorage.removeItem('verificationEmail');
-          // Force reload auth state
-          window.location.href = '/chat';
-        } else {
-          throw new Error(data.message || 'Verification failed');
-        }
-      })
-      .catch(() => {
-        toast({
-          variant: "destructive",
-          title: "Verification failed",
-          description: "Invalid or expired verification link"
-        });
-      });
-    }
-
-    // Get email from session storage
+    // Get email from storage
     const storedEmail = localStorage.getItem('verificationEmail');
     if (storedEmail) {
       setEmail(storedEmail);
     }
-  }, [navigate, toast]);
+
+    // Get verification params from URL
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get('mode');
+    const code = params.get('code');
+
+    if (mode === 'verifyEmail' && code) {
+      verifyEmail(code);
+    }
+  }, []);
+
+  const verifyEmail = async (code: string) => {
+    try {
+      const response = await fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: code })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        setVerificationStatus('success');
+        toast({
+          title: "Email verified",
+          description: "Verification successful! Redirecting to chat..."
+        });
+        localStorage.removeItem('verificationEmail');
+        setTimeout(() => navigate('/chat'), 1500);
+      } else {
+        setVerificationStatus('error');
+        throw new Error(data.message || 'Verification failed');
+      }
+    } catch (error) {
+      setVerificationStatus('error');
+      toast({
+        variant: "destructive",
+        title: "Verification failed",
+        description: "Invalid or expired verification link"
+      });
+    }
+  };
 
   const handleResend = async () => {
     try {
