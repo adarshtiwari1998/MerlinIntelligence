@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
@@ -7,8 +6,8 @@ export default function Verify() {
   const [email, setEmail] = useState('');
   const [location, navigate] = useLocation();
   const { toast } = useToast();
-  const [verificationStatus, setVerificationStatus] = useState<'pending' | 'success' | 'error'>('pending');
-  
+  const [verificationStatus, setVerificationStatus<'pending' | 'success' | 'error'>('pending');
+
   // Check if we have a valid token
   const params = new URLSearchParams(location.search);
   const hasValidToken = params.get('token') || (params.get('mode') === 'verifyEmail' && params.get('code'));
@@ -25,13 +24,6 @@ export default function Verify() {
       return;
     }
 
-    // Get email from storage
-    const storedEmail = localStorage.getItem('verificationEmail');
-    if (storedEmail) {
-      setEmail(storedEmail);
-    }
-
-  useEffect(() => {
     // Get email from storage
     const storedEmail = localStorage.getItem('verificationEmail');
     if (storedEmail) {
@@ -57,7 +49,7 @@ export default function Verify() {
       });
 
       const data = await response.json();
-      
+
       if (response.ok) {
         setVerificationStatus('success');
         toast({
@@ -87,7 +79,7 @@ export default function Verify() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
       });
-      
+
       toast({
         title: "Email sent",
         description: "Verification email has been resent"
