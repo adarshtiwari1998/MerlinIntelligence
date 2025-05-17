@@ -12,12 +12,13 @@ export default function Verify() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Get email from local storage that was set during registration
     const storedEmail = localStorage.getItem('verificationEmail');
-    if (storedEmail) {
-      setEmail(storedEmail);
+    if (!storedEmail) {
+      navigate('/register');
+      return;
     }
-  }, []);
+    setEmail(storedEmail);
+  }, [navigate]);
 
   const handleVerify = async () => {
     try {
@@ -32,7 +33,7 @@ export default function Verify() {
           title: "Email verified",
           description: "Registration complete! Redirecting to chat..."
         });
-        localStorage.removeItem('verificationEmail'); // Clean up
+        localStorage.removeItem('verificationEmail');
         navigate('/chat');
       } else {
         throw new Error('Verification failed');
@@ -50,31 +51,43 @@ export default function Verify() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center space-y-4">
-          <h3 className="text-2xl font-bold">Enter Verification Code</h3>
+          <h3 className="text-2xl font-bold">Verify your email address to continue</h3>
           <p className="text-gray-600 dark:text-gray-400">
-            We've sent a code to {email}
+            We sent an email to {email}. Click the link in that email to verify your account.
+          </p>
+          <p className="text-sm text-gray-500">
+            Don't see an email? Check your spam or
+            <button 
+              onClick={() => navigate('/register')}
+              className="ml-1 text-blue-600 hover:underline"
+            >
+              try again
+            </button>
           </p>
         </div>
-        <div className="flex justify-center">
-          <InputOTP
-            value={otp}
-            onChange={setOtp}
-            maxLength={6}
-            render={({ slots }) => (
-              <InputOTPGroup>
-                {slots.map((slot, index) => (
-                  <InputOTPSlot key={index} {...slot} />
-                ))}
-              </InputOTPGroup>
-            )}
-          />
+        {/* We'll keep OTP input for manual verification as fallback */}
+        <div className="mt-8">
+          <div className="flex justify-center">
+            <InputOTP
+              value={otp}
+              onChange={setOtp}
+              maxLength={6}
+              render={({ slots }) => (
+                <InputOTPGroup>
+                  {slots.map((slot, index) => (
+                    <InputOTPSlot key={index} {...slot} />
+                  ))}
+                </InputOTPGroup>
+              )}
+            />
+          </div>
+          <Button 
+            onClick={handleVerify}
+            className="w-full mt-4"
+          >
+            Verify Email
+          </Button>
         </div>
-        <Button 
-          onClick={handleVerify}
-          className="w-full"
-        >
-          Verify Email
-        </Button>
       </div>
     </div>
   );
