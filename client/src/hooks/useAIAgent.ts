@@ -49,17 +49,30 @@ export function useAIAgent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const createNewConversation = () => {
+  const createNewConversation = (firstMessage?: string) => {
     const newConversation: Conversation = {
       id: Date.now().toString(),
-      title: "New Conversation",
+      title: firstMessage?.slice(0, 50) || "New Conversation",
       createdAt: new Date(),
       updatedAt: new Date(),
       messages: []
     };
-    setConversations(prev => [...prev, newConversation]);
+    setConversations(prev => [newConversation, ...prev]);
     setCurrentConversation(newConversation);
     setMessages([]);
+    return newConversation;
+  };
+
+  const updateConversation = (conversation: Conversation, newMessages: Message[]) => {
+    const updatedConversation = {
+      ...conversation,
+      messages: newMessages,
+      updatedAt: new Date()
+    };
+    setConversations(prev => 
+      prev.map(conv => conv.id === conversation.id ? updatedConversation : conv)
+    );
+    return updatedConversation;
   };
 
   const selectConversation = (conversation: Conversation) => {
@@ -69,6 +82,10 @@ export function useAIAgent() {
 
   const sendMessage = async (request: ModelRequest): Promise<ModelResponse | null> => {
     setIsLoading(true);
+    
+    if (!currentConversation) {
+      setCurrentConversation(createNewConversation(request.prompt));
+    }
 
     // Maintain conversation context with improved history tracking
     const recentMessages = messages.slice(-10);
