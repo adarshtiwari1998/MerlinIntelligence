@@ -1,13 +1,48 @@
 // index.ts
 import express, { type Request, Response, NextFunction } from "express";
+import session from 'express-session';
+import { Pool } from 'pg';
+import connectPgSimple from 'connect-pg-simple';
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { LLMGateway } from "./ai/llmGateway"; // Import LLMGateway
+import { LLMGateway } from "./ai/llmGateway";
+import { login, register, isAuthenticated } from "./middleware/auth";
+
+const pgSession = connectPgSimple(session);
+const pool = new Pool({
+  host: process.env.PGHOST,
+  port: parseInt(process.env.PGPORT || '5432'),
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  database: process.env.PGDATABASE,
+  ssl: true
+}); // Import LLMGateway
 
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(session({
+  store: new pgSession({
+    pool,
+    tableName: 'user_sessions'
+  }),
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+  }
+}));
+
+// Auth routes
+app.post('/api/auth/login', login);
+app.post('/api/auth/register', register);
+app.post('/api/auth/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.json({ message: 'Logged out successfully' });
+  });
+});
 
 // Logger middleware
 app.use((req, res, next) => {

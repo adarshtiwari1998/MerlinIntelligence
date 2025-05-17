@@ -17,6 +17,26 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
+// Conversation History schema
+export const conversationHistory = pgTable("conversation_history", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  title: text("title").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").references(() => conversationHistory.id),
+  role: text("role").notNull(),
+  content: text("content").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
+  modelUsed: text("model_used"),
+  tokens: integer("tokens"),
+  latency: integer("latency"),
+});
+
 // AI Request schema
 export const aiRequests = pgTable("ai_requests", {
   id: serial("id").primaryKey(),
