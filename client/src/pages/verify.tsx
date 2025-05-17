@@ -14,19 +14,18 @@ export default function Verify() {
   const hasValidToken = code && params.get('mode') === 'verifyEmail';
 
   useEffect(() => {
-    const code = params.get('code');
-    
-    // Redirect to signup if no token
-    if (!code || params.get('mode') !== 'verifyEmail') {
+    const token = params.get('token') || (params.get('mode') === 'verifyEmail' && params.get('code'));
+
+    if (!token) {
       toast({
-        variant: "destructive",
+        variant: "destructive", 
         title: "Invalid verification link",
         description: "Please try signing up again"
       });
       navigate('/sign-up');
       return;
     }
-    
+
     verifyEmail(code);
 
     // Get email from storage

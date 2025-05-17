@@ -313,29 +313,28 @@ export async function verifyEmail(req: Request, res: Response) {
 }
 
 export async function verifyRouteGuard(req: Request, res: Response, next: NextFunction) {
-  const referrer = req.headers.referer;
-  const isFromSignup = referrer?.includes('/sign-up');
-  const verificationToken = req.query.token || (req.query.mode === 'verifyEmail' && req.query.code);
+  const token = req.query.token || (req.query.mode === 'verifyEmail' && req.query.code);
 
-  if (!verificationToken) {
-    return res.status(403).json({ message: 'Invalid verification link' });
+  if (!token) {
+    return res.redirect('/sign-up');
   }
 
   // Check if token exists and is valid
   const [pendingUser] = await db
     .select()
     .from(pendingUsers)
-    .where(eq(pendingUsers.verificationToken, verificationToken as string))
+    .where(eq(pendingUsers.verificationToken, token as string))
     .limit(1);
 
   if (!pendingUser) {
-    return res.status(404).json({ message: 'Verification link expired or invalid' });
+    return res.redirect('/sign-up');
   }
 
   if (pendingUser.expiresAt < new Date()) {
     await db.delete(pendingUsers).where(eq(pendingUsers.id, pendingUser.id));
-    return res.status(400).json({ message: 'Verification link expired. Please sign up again.' });
+    return res.redirect('/sign-up');
   }
 
+  req.pendingUser = pendingUser;
   next();
 }
