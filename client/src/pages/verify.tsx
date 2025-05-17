@@ -47,7 +47,6 @@ export default function Verify() {
     }
 
     // Get verification params from URL
-    const params = new URLSearchParams(window.location.search);
     const mode = params.get('mode');
     const code = params.get('code');
 
