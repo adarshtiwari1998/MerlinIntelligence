@@ -10,7 +10,7 @@ function extractConcepts(text: string): string[] {
     /\b(flow|process|diagram|flowchart|architecture)\b/gi,
     /\b(data|model|schema|structure)\b/gi
   ];
-  
+
   return Array.from(new Set(
     conceptPatterns.flatMap(pattern => 
       text.match(pattern) || []
@@ -20,14 +20,14 @@ function extractConcepts(text: string): string[] {
 
 function isFollowUpQuestion(prompt: string, previousContent?: string): boolean {
   if (!previousContent) return false;
-  
+
   const followUpIndicators = [
     /\b(it|this|that|these|those)\b/i,
     /\b(how|why|what|when|where)\b.*\?/i,
     /\b(can you|could you)\b/i,
     /\b(explain|elaborate|clarify)\b/i
   ];
-  
+
   return followUpIndicators.some(pattern => pattern.test(prompt)) ||
          prompt.length < 20 || // Short questions are often follow-ups
          hasSimilarConcepts(prompt, previousContent);
@@ -69,7 +69,7 @@ export function useAIAgent() {
 
   const sendMessage = async (request: ModelRequest): Promise<ModelResponse | null> => {
     setIsLoading(true);
-    
+
     // Maintain conversation context with improved history tracking
     const recentMessages = messages.slice(-10);
     const currentTopic = recentMessages
@@ -80,7 +80,7 @@ export function useAIAgent() {
         concepts: extractConcepts(msg.content)
       }))
       .pop();
-      
+
     // Enhanced context analysis
     const contextAnalysis = {
       mainConcepts: currentTopic?.concepts || [],
@@ -88,7 +88,7 @@ export function useAIAgent() {
       lastQuery: messages[messages.length - 1]?.content,
       requiresVisualResponse: needsVisualResponse(request.prompt)
     };
-    
+
     // Extract main topic and key concepts
     const mainTopic = recentMessages
         .filter(msg => msg.role === "assistant" && msg.content.length > 50)
@@ -110,14 +110,14 @@ export function useAIAgent() {
         const concepts = msg.content
             .toLowerCase()
             .match(/\b(api|interface|flowchart|diagram|architecture|process|system|application)\b/g) || [];
-            
+
         // Extract potential topics
         const topics = msg.content
             .split('\n')
             .filter(line => line.length > 50)
             .map(line => line.split('.')[0])
             .filter(Boolean);
-            
+
         return {
             role: msg.role,
             content: msg.content,
@@ -149,7 +149,7 @@ export function useAIAgent() {
         requiresFlowchart: request.prompt.toLowerCase().includes('flowchart') ||
                           (contextualHistory.isFollowUp && lastDiscussion.length > 0)
     };
-    
+
     try {
       // Add user message to state
       const userMessage: Message = {
@@ -158,7 +158,7 @@ export function useAIAgent() {
         content: request.prompt,
         timestamp: new Date(),
       };
-      
+
       // Create placeholder for AI response
       const aiMessageId = (Date.now() + 1).toString();
       const aiMessage: Message = {
@@ -168,9 +168,9 @@ export function useAIAgent() {
         timestamp: new Date(),
         isStreaming: true,
       };
-      
+
       setMessages(prev => [...prev, userMessage, aiMessage]);
-      
+
       // Stream response
       const response = await fetch("/api/llm/stream", {
         method: "POST",
@@ -180,14 +180,14 @@ export function useAIAgent() {
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-      
+
       if (reader) {
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
-          
+
           const chunk = decoder.decode(value);
-          
+
           setMessages(prev => prev.map(msg => 
             msg.id === aiMessageId 
               ? { ...msg, content: msg.content + chunk }
@@ -195,24 +195,26 @@ export function useAIAgent() {
           ));
         }
       }
-      
+
       // Add AI response to messages
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: data.text,
-        timestamp: new Date(),
-        modelUsed: data.modelUsed,
-        tokens: data.tokensUsed,
-        latency: data.latencyMs,
-      };
-      
-      setMessages(prev => [...prev, aiMessage]);
-      
+      setMessages(prev => prev.map(msg => 
+        msg.id === aiMessageId
+          ? {
+              id: aiMessageId,
+              role: "assistant",
+              content: data.text,
+              timestamp: new Date(),
+              modelUsed: data.modelUsed,
+              tokens: data.tokensUsed,
+              latency: data.latencyMs,
+            }
+          : msg
+      ));
+
       return data;
     } catch (error) {
       console.error("Error sending message:", error);
-      
+
       // Add error message
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -220,7 +222,7 @@ export function useAIAgent() {
         content: `Error: ${error instanceof Error ? error.message : 'Failed to get response from AI'}`,
         timestamp: new Date(),
       };
-      
+
       setMessages(prev => [...prev, errorMessage]);
       return null;
     } finally {
