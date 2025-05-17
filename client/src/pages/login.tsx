@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useLocation, useNavigate } from 'wouter';
 
 export default function Login() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
