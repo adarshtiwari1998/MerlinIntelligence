@@ -22,7 +22,20 @@ export async function login(req: Request, res: Response) {
   }
   
   req.session.userId = user.id;
-  res.json({ message: 'Logged in successfully' });
+  req.session.save((err) => {
+    if (err) {
+      console.error('Session save error:', err);
+      return res.status(500).json({ message: 'Error creating session' });
+    }
+    res.json({ 
+      message: 'Logged in successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username
+      }
+    });
+  });
 }
 
 export async function register(req: Request, res: Response) {
