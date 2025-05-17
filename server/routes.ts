@@ -1,8 +1,9 @@
 // routes.ts
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { modelRequestSchema, modelResponseSchema } from "@shared/schema";
+import { db } from "./db";
+import { modelRequestSchema, modelResponseSchema, users, passwordResets } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { LLMGateway } from "./ai/llmGateway";
@@ -138,7 +139,7 @@ export async function registerRoutes(app: Express, llmGateway: LLMGateway): Prom
             const { email } = req.body;
             
             // Find user by email
-            const [user] = await storage.db.select().from(users).where(eq(users.email, email));
+            const [user] = await db.select().from(users).where(eq(users.email, email));
             if (!user) {
                 return res.status(404).json({ message: 'User not found' });
             }
