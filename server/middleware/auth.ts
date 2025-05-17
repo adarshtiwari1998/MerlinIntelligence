@@ -163,15 +163,17 @@ export async function register(req: Request, res: Response) {
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     const verificationExpiry = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
 
-    const [user] = await db
-      .insert(users)
-      .values({ 
-        email, 
-        username, 
-        password: hashedPassword,
-        verified: false
-      })
-      .returning();
+    // Using a transaction to ensure data consistency
+    await db.transaction(async (tx) => {
+      const [user] = await tx
+        .insert(users)
+        .values({ 
+          email, 
+          username, 
+          password: hashedPassword,
+          verified: false
+        })
+        .returning();
 
     // Store verification code
     await db.insert(verificationCodes).values({
@@ -205,9 +207,55 @@ export async function register(req: Request, res: Response) {
       `
     });
 
-    res.json({ message: 'Verification email sent' });
+    // Store verification code
+      await tx.insert(verificationCodes).values({
+        userId: user.id,
+        code: verificationCode,
+        expiresAt: verificationExpiry
+      });
+
+      // Send verification email
+      const transporter = nodemailer.createTransport({
+        host: "smtp.hostinger.com",
+        port: 465,
+        secure: true,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASSWORD
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Verify your email',
+        html: `
+          <h1>Welcome to our platform!</h1>
+          <p>Your verification code is: <strong>${verificationCode}</strong></p>
+          <p>Please enter this code to verify your account.</p>
+          <p>This code will expire in 30 minutes.</p>
+        `
+      });
+
+      res.json({ 
+        message: 'Verification email sent',
+        email: email 
+      });
+    });
   } catch (error) {
     console.error('Registration error:', error);
+    // If error is about duplicate key, return specific message
+    if (error.code === '23505') {
+      if (error.detail.includes('email')) {
+        return res.status(400).json({ message: 'Email already registered' });
+      }
+      if (error.detail.includes('username')) {
+        return res.status(400).json({ message: 'Username already taken' });
+      }
+    }
     res.status(500).json({ message: 'Registration failed' });
   }
 }
