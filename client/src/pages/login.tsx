@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useLocation } from 'wouter';
+import { useLocation, useNavigate } from 'wouter';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -77,7 +77,7 @@ export default function Login() {
             <button
               type="button"
               className="text-blue-600 hover:text-blue-500 block w-full"
-              onClick={() => { window.location.href = '/sign-up'; }}
+              onClick={() => navigate('/sign-up')}
             >
               Don't have an account? Register
             </button>
