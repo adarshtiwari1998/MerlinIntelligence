@@ -10,6 +10,7 @@ import { LLMGateway } from "./ai/llmGateway";
 import { MemVectorDB } from "./ai/vectorDb";
 import nodemailer from 'nodemailer';
 import { storage } from './storage';
+import { checkVerificationToken } from './middleware/auth';
 // Configure email transporter
 const transporter = nodemailer.createTransport({
     host: "smtp.hostinger.com",
