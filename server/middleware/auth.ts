@@ -1,7 +1,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../db';
-import { users } from '@shared/schema';
+import { users, verificationCodes } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
