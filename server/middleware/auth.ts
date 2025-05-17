@@ -154,15 +154,103 @@ export async function register(req: Request, res: Response) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationExpiry = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+
     const [user] = await db
       .insert(users)
-      .values({ email, username, password: hashedPassword })
+      .values({ 
+        email, 
+        username, 
+        password: hashedPassword,
+        verified: false
+      })
       .returning();
+
+    // Store verification code
+    await db.insert(verificationCodes).values({
+      userId: user.id,
+      code: verificationCode,
+      expiresAt: verificationExpiry
+    });
+
+    // Send verification email
+    const transporter = nodemailer.createTransport({
+      host: "smtp.hostinger.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Verify your email',
+      html: `
+        <h1>Verify your email</h1>
+        <p>Your verification code is: <strong>${verificationCode}</strong></p>
+        <p>This code will expire in 30 minutes.</p>
+      `
+    });
       
-    req.session.userId = user.id;
-    res.json({ user, message: 'Registered successfully' });
+    res.json({ message: 'Verification email sent' });
   } catch (error) {
     console.error('Registration error:', error);
     res.status(400).json({ message: 'Registration failed' });
+  }
+}
+
+export async function verifyEmail(req: Request, res: Response) {
+  const { email, otp } = req.body;
+
+  try {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const [verificationRecord] = await db
+      .select()
+      .from(verificationCodes)
+      .where(eq(verificationCodes.userId, user.id))
+      .orderBy(desc(verificationCodes.createdAt))
+      .limit(1);
+
+    if (!verificationRecord || verificationRecord.code !== otp) {
+      return res.status(400).json({ message: 'Invalid verification code' });
+    }
+
+    if (verificationRecord.expiresAt < new Date()) {
+      return res.status(400).json({ message: 'Verification code expired' });
+    }
+
+    // Mark user as verified
+    await db
+      .update(users)
+      .set({ verified: true })
+      .where(eq(users.id, user.id));
+
+    // Delete used verification code
+    await db
+      .delete(verificationCodes)
+      .where(eq(verificationCodes.id, verificationRecord.id));
+
+    // Set session
+    req.session.userId = user.id;
+    
+    res.json({ message: 'Email verified successfully' });
+  } catch (error) {
+    console.error('Verification error:', error);
+    res.status(500).json({ message: 'Verification failed' });
   }
 }

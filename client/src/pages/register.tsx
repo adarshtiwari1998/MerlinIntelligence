@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 
 export default function Register() {
   const [email, setEmail] = useState('');
@@ -12,6 +13,7 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [otp, setOtp] = useState('');
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { register } = useAuth();
@@ -26,7 +28,7 @@ export default function Register() {
       
       toast({
         title: "Verification email sent",
-        description: "Please check your email to verify your account"
+        description: "Please check your email and enter the verification code"
       });
     } catch (error) {
       toast({
@@ -34,7 +36,34 @@ export default function Register() {
         title: "Registration failed",
         description: error instanceof Error ? error.message : "Please try again"
       });
+    } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    try {
+      const response = await fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp })
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Email verified",
+          description: "Registration complete! Redirecting to chat..."
+        });
+        navigate('/chat');
+      } else {
+        throw new Error('Verification failed');
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Verification failed",
+        description: "Invalid verification code. Please try again."
+      });
     }
   };
 
@@ -48,11 +77,33 @@ export default function Register() {
         </div>
         
         {verifying ? (
-          <div className="text-center space-y-4">
-            <h3 className="text-xl font-medium">Check your email</h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              We've sent a verification link to {email}
-            </p>
+          <div className="space-y-6">
+            <div className="text-center space-y-4">
+              <h3 className="text-xl font-medium">Enter verification code</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                We've sent a code to {email}
+              </p>
+            </div>
+            <div className="flex justify-center">
+              <InputOTP
+                value={otp}
+                onChange={setOtp}
+                maxLength={6}
+                render={({ slots }) => (
+                  <InputOTPGroup>
+                    {slots.map((slot, index) => (
+                      <InputOTPSlot key={index} {...slot} />
+                    ))}
+                  </InputOTPGroup>
+                )}
+              />
+            </div>
+            <Button 
+              onClick={handleVerify}
+              className="w-full"
+            >
+              Verify Email
+            </Button>
           </div>
         ) : (
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
