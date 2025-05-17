@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 import { passwordResets } from '@shared/schema';
 import { desc } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function isAuthenticated(req: Request, res: Response, next: NextFunction) {
   if (!req.session.userId) {
@@ -103,7 +104,7 @@ export async function resetPassword(req: Request, res: Response) {
         .select()
         .from(users)
         .where(eq(users.id, resetRequest.userId));
-      
+
       let transporter: nodemailer.Transporter;
       if (!transporter) {
         transporter = nodemailer.createTransport({
@@ -119,7 +120,7 @@ export async function resetPassword(req: Request, res: Response) {
           }
         });
       }
-      
+
       await transporter.sendMail({
         from: process.env.EMAIL_USER,
         to: user.email,
@@ -171,7 +172,7 @@ export async function register(req: Request, res: Response) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationToken = uuidv4();
     const verificationExpiry = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
 
     // Using a transaction to ensure data consistency
@@ -189,7 +190,7 @@ export async function register(req: Request, res: Response) {
     // Store verification code
     await tx.insert(verificationCodes).values({
       userId: user.id,
-      code: verificationCode,
+      code: verificationToken,
       expiresAt: verificationExpiry
     });
     let transporter: nodemailer.Transporter;
@@ -208,37 +209,18 @@ export async function register(req: Request, res: Response) {
       });
     }
 
+    const verificationUrl = `${process.env.APP_URL}/verify?token=${verificationToken}`;
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
       subject: 'Verify your email',
       html: `
-        <h1>Verify your email</h1>
-        <p>Your verification code is: <strong>${verificationCode}</strong></p>
-        <p>This code will expire in 30 minutes.</p>
+        <h1>Welcome to our platform!</h1>
+        <p>Please click the link below to verify your account:</p>
+        <p><a href="${verificationUrl}">${verificationUrl}</a></p>
+        <p>This link will expire in 30 minutes.</p>
       `
     });
-
-    // Store verification code
-      await tx.insert(verificationCodes).values({
-        userId: user.id,
-        code: verificationCode,
-        expiresAt: verificationExpiry
-      });
-
-      // Send verification email
-
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: 'Verify your email',
-        html: `
-          <h1>Welcome to our platform!</h1>
-          <p>Your verification code is: <strong>${verificationCode}</strong></p>
-          <p>Please enter this code to verify your account.</p>
-          <p>This code will expire in 30 minutes.</p>
-        `
-      });
 
       res.json({ 
         message: 'Verification email sent',
