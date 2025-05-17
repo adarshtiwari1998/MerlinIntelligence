@@ -10,9 +10,50 @@ export default function Verify() {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const token = params.get('token') || (params.get('mode') === 'verifyEmail' && params.get('code'));
-
+    const token = params.get('token');
+    
     if (!token) {
+      toast({
+        variant: "destructive",
+        title: "Missing verification token",
+        description: "Please use the link from your email"
+      });
+      navigate('/sign-up');
+      return;
+    }
+
+    // First verify the token is valid
+    fetch(`/api/auth/verify/check?token=${token}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        setEmail(data.email);
+        return fetch('/api/auth/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.user) {
+          toast({
+            title: "Email verified",
+            description: "Redirecting to chat..."
+          });
+          setTimeout(() => navigate('/chat'), 1500);
+        }
+      })
+      .catch(error => {
+        toast({
+          variant: "destructive", 
+          title: "Verification failed",
+          description: error.message || "Please try signing up again"
+        });
+        navigate('/sign-up');
+      });
       toast({
         variant: "destructive", 
         title: "Invalid verification link",

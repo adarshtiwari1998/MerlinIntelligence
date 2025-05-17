@@ -215,18 +215,21 @@ export async function register(req: Request, res: Response) {
       });
     }
 
-    const verificationUrl = `${process.env.APP_URL}/verify?mode=verifyEmail&code=${verificationToken}`;
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: 'Verify your email',
-      html: `
-        <h1>Welcome to our platform!</h1>
-        <p>Please click the link below to verify your account:</p>
-        <p><a href="${verificationUrl}">${verificationUrl}</a></p>
-        <p>This link will expire in 30 minutes.</p>
-      `
-    });
+    // Only send verification email if not already sent
+    if (!req.query.fromVerify) {
+      const verificationUrl = `${process.env.APP_URL}/verify?token=${verificationToken}`;
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Verify your email',
+        html: `
+          <h1>Welcome to our platform!</h1>
+          <p>Please click the link below to verify your account:</p>
+          <p><a href="${verificationUrl}">${verificationUrl}</a></p>
+          <p>This link will expire in 30 minutes.</p>
+        `
+      });
+    }
 
       res.json({ 
         message: 'Verification email sent',
