@@ -97,8 +97,42 @@ export async function resetPassword(req: Request, res: Response) {
           .where(eq(users.id, resetRequest.userId));
       });
 
-    // Update user password
-    await db
+      // Send confirmation email
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, resetRequest.userId));
+
+      // Send confirmation email
+      const transporter = nodemailer.createTransport({
+        host: "smtp.hostinger.com",
+        port: 465,
+        secure: true,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASSWORD
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: user.email,
+        subject: 'Password Changed Successfully',
+        html: `
+          <h1>Password Changed</h1>
+          <p>Your password has been changed successfully.</p>
+          <p>If you did not make this change, please contact support immediately.</p>
+        `
+      });
+
+      res.json({ message: 'Password reset successful' });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ message: 'Failed to reset password' });
+    }
       .update(users)
       .set({ password: hashedPassword })
       .where(eq(users.id, resetRequest.userId));
