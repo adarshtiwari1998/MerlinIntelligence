@@ -24,7 +24,11 @@ export default function App() {
             <Home />
           </ProtectedRoute>
         </Route>
-        <Route path="/" component={Login} />
+        <Route path="/">
+          <ProtectedRoute>
+            <Home />
+          </ProtectedRoute>
+        </Route>
         <Route component={NotFound} />
       </Switch>
       <Toaster />
