@@ -5,6 +5,8 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Toaster } from '@/components/ui/toaster';
 import Home from '@/pages/home';
 import Login from '@/pages/login';
+import Register from '@/pages/register';
+import ForgotPassword from '@/pages/forgot-password';
 import NotFound from '@/pages/not-found';
 
 export default function App() {
@@ -12,6 +14,8 @@ export default function App() {
     <AuthProvider>
       <Switch>
         <Route path="/login" component={Login} />
+        <Route path="/sign-up" component={Register} />
+        <Route path="/forget" component={ForgotPassword} />
         <Route path="/chat">
           <ProtectedRoute>
             <Home />

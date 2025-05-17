@@ -69,18 +69,26 @@ export default function Login() {
             type="submit"
             className="w-full"
           >
-            {isRegistering ? 'Register' : 'Sign in'}
+            Sign in
           </Button>
+          
+          <div className="text-center space-y-2">
+            <button
+              type="button"
+              className="text-blue-600 hover:text-blue-500 block w-full"
+              onClick={() => navigate('/sign-up')}
+            >
+              Don't have an account? Register
+            </button>
+            <button
+              type="button"
+              className="text-blue-600 hover:text-blue-500 block w-full"
+              onClick={() => navigate('/forget')}
+            >
+              Forgot your password?
+            </button>
+          </div>
         </form>
-        
-        <div className="text-center">
-          <button
-            className="text-blue-600 hover:text-blue-500"
-            onClick={() => setIsRegistering(!isRegistering)}
-          >
-            {isRegistering ? 'Already have an account? Sign in' : "Don't have an account? Register"}
-          </button>
-        </div>
       </div>
     </div>
   );
