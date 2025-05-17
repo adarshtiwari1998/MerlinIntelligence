@@ -35,19 +35,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const login = async (email: string, password: string) => {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    
-    if (response.ok) {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      
       const data = await response.json();
-      setUser(data.user);
-      setIsAuthenticated(true);
-      navigate('/chat');
-    } else {
-      throw new Error('Login failed');
+      
+      if (response.ok) {
+        setUser(data.user);
+        setIsAuthenticated(true);
+        navigate('/chat');
+      } else {
+        throw new Error(data.message || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     }
   };
 

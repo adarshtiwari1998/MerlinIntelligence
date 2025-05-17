@@ -29,7 +29,7 @@ export default function Login() {
       console.error('Auth error:', error);
       toast({
         title: "Error",
-        description: "Login failed. Please check your credentials.",
+        description: error instanceof Error ? error.message : "Login failed. Please check your credentials.",
         variant: "destructive"
       });
     }
