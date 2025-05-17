@@ -136,9 +136,26 @@ export async function registerRoutes(app: Express, llmGateway: LLMGateway): Prom
     app.post("/api/auth/forgot-password", async (req: Request, res: Response) => {
         try {
             const { email } = req.body;
+            
+            // Find user by email
+            const [user] = await storage.db.select().from(users).where(eq(users.email, email));
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
 
             // Generate secure reset token
             const resetToken = await import('crypto').then(crypto => crypto.randomBytes(32).toString('hex'));
+            
+            // Store token in database
+            const expiryDate = new Date();
+            expiryDate.setHours(expiryDate.getHours() + 1); // Token expires in 1 hour
+            
+            await storage.db.insert(passwordResets).values({
+                userId: user.id,
+                token: resetToken,
+                expiresAt: expiryDate,
+                used: false
+            });
 
             // Send reset email
             const mailOptions = {
