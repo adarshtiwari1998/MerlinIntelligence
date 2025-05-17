@@ -138,7 +138,7 @@ export async function registerRoutes(app: Express, llmGateway: LLMGateway): Prom
             const { email } = req.body;
 
             // Generate secure reset token
-            const resetToken = require('crypto').randomBytes(32).toString('hex');
+            const resetToken = await import('crypto').then(crypto => crypto.randomBytes(32).toString('hex'));
 
             // Send reset email
             const mailOptions = {
