@@ -15,7 +15,7 @@ export default function App() {
       <Switch>
         <Route path="/login" component={Login} />
         <Route path="/sign-up" component={Register} />
-        <Route path="/verify" component={Register} />
+        <Route path="/verify" component={Verify} />
         <Route path="/forget" component={ForgotPassword} />
         <Route path="/reset-password" component={ResetPassword} />
         <Route path="/chat">

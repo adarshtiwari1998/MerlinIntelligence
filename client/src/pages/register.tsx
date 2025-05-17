@@ -24,14 +24,13 @@ export default function Register() {
     
     try {
       await register(email, username, password);
-      setVerifying(true);
+      localStorage.setItem('verificationEmail', email);
       
       toast({
         title: "Verification email sent",
         description: "Please check your email and enter the verification code"
       });
       
-      // Explicitly navigate to verification route
       navigate('/verify');
     } catch (error) {
       toast({
