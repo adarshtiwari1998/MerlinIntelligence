@@ -3,10 +3,10 @@ import { useState } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useLocation, useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 
 export default function Login() {
-  const navigate = useNavigate();
+  const [_, setLocation] = useLocation();
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -78,7 +78,7 @@ export default function Login() {
             <button
               type="button"
               className="text-blue-600 hover:text-blue-500 block w-full"
-              onClick={() => navigate('/sign-up')}
+              onClick={() => setLocation('/sign-up')}
             >
               Don't have an account? Register
             </button>
