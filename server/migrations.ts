@@ -1,4 +1,3 @@
-
 import { db } from './db';
 import { sql } from 'drizzle-orm';
 
@@ -16,9 +15,12 @@ async function main() {
       )
     `);
 
-    // Create users table
+    // Drop existing users table if exists
+    await db.execute(sql`DROP TABLE IF EXISTS users CASCADE`);
+
+    // Create users table with verified column
     await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS users (
+      CREATE TABLE users (
         id SERIAL PRIMARY KEY,
         username TEXT NOT NULL UNIQUE,
         email TEXT NOT NULL UNIQUE,
@@ -28,9 +30,10 @@ async function main() {
       )
     `);
 
-    // Create verification_codes table
+    // Drop and recreate verification_codes table
+    await db.execute(sql`DROP TABLE IF EXISTS verification_codes`);
     await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS verification_codes (
+      CREATE TABLE verification_codes (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id),
         code TEXT NOT NULL,
@@ -39,9 +42,10 @@ async function main() {
       )
     `);
 
-    // Create password_resets table
+    // Drop and recreate password_resets table
+    await db.execute(sql`DROP TABLE IF EXISTS password_resets`);
     await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS password_resets (
+      CREATE TABLE password_resets (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id),
         token TEXT NOT NULL UNIQUE,
