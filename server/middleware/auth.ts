@@ -305,10 +305,10 @@ export async function verifyEmail(req: Request, res: Response) {
         }
       });
     });
-  } catch (error) {
-    console.error('Verification error:', error);
-    res.status(500).json({ message: 'Verification failed' });
-  }
+  });
+} catch (error) {
+  console.error('Verification error:', error);
+  res.status(500).json({ message: 'Verification failed' });
 }
 export async function verifyRouteGuard(req: Request, res: Response, next: NextFunction) {
   const referrer = req.headers.referer;
