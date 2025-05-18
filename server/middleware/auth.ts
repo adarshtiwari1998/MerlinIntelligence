@@ -346,13 +346,14 @@ export async function verifyEmail(req: Request, res: Response) {
     // Move user from pending to active in a transaction
     await db.transaction(async (tx) => {
       // Create verified user
+      // Create verified user with verified flag set to true
       const [user] = await tx
         .insert(users)
         .values({
           email: pendingUser.email,
           username: pendingUser.username,
           password: pendingUser.password,
-          verified: true
+          verified: true // This ensures account is marked as verified
         })
         .returning();
 

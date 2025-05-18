@@ -27,15 +27,21 @@ export default function ActionCode() {
         body: JSON.stringify({ token })
       });
 
+      const data = await response.json();
+
       if (response.ok) {
         setVerificationStatus('success');
         toast({
           title: "Email verified",
-          description: "Verification successful! Redirecting to chat..."
+          description: "Your account is now verified! Redirecting to chat..."
         });
-        setTimeout(() => navigate('/chat'), 1500);
+        
+        // Small delay before redirect to show success message
+        setTimeout(() => {
+          navigate('/chat');
+        }, 1500);
       } else {
-        throw new Error('Verification failed');
+        throw new Error(data.message || 'Verification failed');
       }
     } catch (error) {
       setVerificationStatus('error');
