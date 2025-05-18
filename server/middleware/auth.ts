@@ -213,7 +213,7 @@ export async function register(req: Request, res: Response) {
 
       // Only send verification email if not already sent
       if (!req.query.fromVerify) {
-        const verificationUrl = `${process.env.APP_URL}/action-code?mode=verifyEmail&oobCode=${verificationToken}&apiKey=${process.env.API_KEY}&lang=en`;
+        const verificationUrl = `${process.env.APP_URL}/action-code?mode=verifyEmail&oobCode=${verificationToken}&lang=en`;
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
           to: email,
