@@ -1,6 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 export default function Verify() {
   const [email, setEmail] = useState('');
@@ -9,8 +11,23 @@ export default function Verify() {
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'success' | 'error'>('pending');
 
   useEffect(() => {
+    // Check if user is already verified
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/check');
+        const data = await response.json();
+        if (response.ok && data.user?.verified) {
+          navigate('/chat');
+          return;
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+      }
+    };
+    checkAuth();
+
     const params = new URLSearchParams(location.search);
-    const token = params.get('code') || params.get('token');
+    const token = params.get('code') || params.get('oobCode');
     const mode = params.get('mode');
     const goto = params.get('goto');
 
@@ -20,15 +37,15 @@ export default function Verify() {
       setEmail(storedEmail);
     }
 
-    // If we have a token, verify it
-    if (token) {
+    // If we have a token and mode is verifyEmail, verify it
+    if (token && mode === 'verifyEmail') {
       verifyEmail(token);
     }
 
     // Handle redirect after verification
     if (goto) {
       const redirectPath = decodeURIComponent(goto);
-      if (redirectPath.startsWith('/~')) {
+      if (redirectPath === '/~') {
         navigate('/chat');
       }
     }
@@ -65,15 +82,20 @@ export default function Verify() {
 
   const handleResend = async () => {
     try {
-      await fetch('/api/auth/resend-verification', {
+      const response = await fetch('/api/auth/resend-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
       });
-      toast({
-        title: "Email sent",
-        description: "Verification email has been resent"
-      });
+
+      if (response.ok) {
+        toast({
+          title: "Email sent",
+          description: "Verification email has been resent"
+        });
+      } else {
+        throw new Error('Failed to resend verification email');
+      }
     } catch (error) {
       toast({
         variant: "destructive",
@@ -82,6 +104,17 @@ export default function Verify() {
       });
     }
   };
+
+  if (verificationStatus === 'success') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Email Verified Successfully!</h1>
+          <p>Redirecting to chat...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
@@ -93,21 +126,13 @@ export default function Verify() {
               We sent an email to {email}. Click the link in that email to verify your account.
             </p>
           )}
-          <button
+          <Button
             onClick={handleResend}
-            className="mt-4 text-blue-600 hover:underline text-sm"
+            className="mt-4"
+            variant="outline"
           >
-            Resend email
-          </button>
-          <p className="mt-2 text-sm text-gray-500">
-            Can't see an email? Check your spam or{' '}
-            <button
-              onClick={() => navigate('/sign-up')}
-              className="text-blue-600 hover:underline"
-            >
-              try again
-            </button>
-          </p>
+            Resend verification email
+          </Button>
         </div>
       </div>
     </div>

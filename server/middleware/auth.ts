@@ -248,7 +248,8 @@ export async function register(req: Request, res: Response) {
 }
 
 export async function verifyEmail(req: Request, res: Response) {
-  const { token } = req.body;
+  const { token, oobCode } = req.body;
+  const verificationToken = token || oobCode;
 
   try {
     // Find pending user with this verification token
