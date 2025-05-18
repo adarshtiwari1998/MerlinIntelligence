@@ -24,20 +24,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkAuth = async () => {
     try {
       const response = await fetch('/api/auth/check');
-      if (!response.ok) {
-        console.error('Auth check failed:', response.status);
-        return;
-      }
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        console.error('Auth check failed: Invalid content type');
-        return;
-      }
       const data = await response.json();
-      setUser(data.user);
-      setIsAuthenticated(true);
+      
+      if (!response.ok) {
+        setIsAuthenticated(false);
+        setUser(null);
+        return;
+      }
+      
+      if (data.authenticated) {
+        setUser(data.user);
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+        setUser(null);
+      }
     } catch (error) {
       console.error('Auth check failed:', error);
+      setIsAuthenticated(false);
+      setUser(null);
     }
   };
 
