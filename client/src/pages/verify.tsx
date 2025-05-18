@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { Check } from 'lucide-react';
 
 export default function Verify() {
   const [email, setEmail] = useState('');
@@ -11,29 +12,8 @@ export default function Verify() {
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'success' | 'error'>('pending');
 
   useEffect(() => {
-    // Check if user is already verified
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/check');
-        const data = await response.json();
-        if (response.ok && data.user?.verified) {
-          navigate('/chat');
-          return;
-        }
-
-        // If not on verify page and not verified, redirect to verify
-        if (!location.pathname.startsWith('/verify') && !data.user?.verified) {
-          navigate('/verify?goto=%2F~');
-          return;
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-      }
-    };
-    checkAuth();
-
     const params = new URLSearchParams(location.search);
-    const token = params.get('code') || params.get('oobCode');
+    const token = params.get('oobCode');
     const mode = params.get('mode');
     const goto = params.get('goto');
 
@@ -51,11 +31,11 @@ export default function Verify() {
     // Handle redirect after verification
     if (goto) {
       const redirectPath = decodeURIComponent(goto);
-      if (redirectPath === '/~') {
+      if (redirectPath === '/~' && verificationStatus === 'success') {
         navigate('/chat');
       }
     }
-  }, [location.search]);
+  }, [location.search, verificationStatus]);
 
   const verifyEmail = async (token: string) => {
     try {
@@ -88,7 +68,6 @@ export default function Verify() {
 
   const handleResend = async () => {
     try {
-      // Get email from localStorage if not in state
       const emailToVerify = email || localStorage.getItem('verificationEmail');
       if (!emailToVerify) {
         throw new Error('No email found for verification');
@@ -120,17 +99,31 @@ export default function Verify() {
     }
   };
 
-  if (verificationStatus === 'success') {
+  // Different layout for action-code verification
+  if (location.pathname === '/action-code') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Email Verified Successfully!</h1>
-          <p>Redirecting to chat...</p>
+        <div className="max-w-md w-full space-y-8 p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+          {verificationStatus === 'success' ? (
+            <div className="text-center">
+              <div className="mx-auto h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                <Check className="h-6 w-6 text-green-600 dark:text-green-300" />
+              </div>
+              <h2 className="mt-4 text-2xl font-bold text-gray-900 dark:text-gray-100">Email Verified Successfully!</h2>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">Redirecting to chat...</p>
+            </div>
+          ) : (
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Verifying your email...</h2>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">Please wait while we verify your email address.</p>
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
+  // Original verify page layout
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
