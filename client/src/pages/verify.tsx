@@ -79,12 +79,12 @@ export default function Verify() {
         body: JSON.stringify({ email: emailToVerify })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to resend verification email');
-      }
-
       const data = await response.json();
       
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to resend verification email');
+      }
+
       toast({
         title: "Email sent",
         description: "New verification email has been sent"
