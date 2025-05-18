@@ -20,6 +20,12 @@ export default function Verify() {
           navigate('/chat');
           return;
         }
+
+        // If not on verify page and not verified, redirect to verify
+        if (!location.pathname.startsWith('/verify') && !data.user?.verified) {
+          navigate('/verify?goto=%2F~');
+          return;
+        }
       } catch (error) {
         console.error('Auth check failed:', error);
       }

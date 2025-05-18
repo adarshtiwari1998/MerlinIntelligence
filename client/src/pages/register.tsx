@@ -40,10 +40,10 @@ export default function Register() {
       
       toast({
         title: "Verification email sent",
-        description: "Please check your email and enter the verification code"
+        description: "Please check your email to verify your account"
       });
       
-      navigate('/verify');
+      navigate('/verify?goto=%2F~');
     } catch (error) {
       toast({
         variant: "destructive",

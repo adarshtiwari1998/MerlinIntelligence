@@ -18,11 +18,23 @@ export default function Login() {
     try {
       const success = await login(email, password);
       if (success) {
+        // Check if user is verified
+        const response = await fetch('/api/auth/check');
+        const data = await response.json();
+        
+        if (!data.user?.verified) {
+          toast({
+            title: "Email verification required",
+            description: "Please verify your email to continue",
+          });
+          setLocation('/verify?goto=%2F~');
+          return;
+        }
+
         toast({
           title: "Welcome back!",
           description: "Successfully logged in. Redirecting to chat...",
         });
-        // Use setTimeout to ensure toast is shown before redirect
         setTimeout(() => setLocation('/chat'), 500);
       }
     } catch (error) {
