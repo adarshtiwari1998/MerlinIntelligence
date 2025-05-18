@@ -11,22 +11,11 @@ import { MemVectorDB } from "./ai/vectorDb";
 import nodemailer from 'nodemailer';
 import { storage } from './storage';
 import { checkVerificationToken } from './middleware/auth';
-// Configure email transporter
-
-
-// Auth check route
-app.get("/api/auth/check", (req: Request, res: Response) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ authenticated: false });
-  }
-  res.json({ authenticated: true, user: req.session.user });
-});
-
 
 const transporter = nodemailer.createTransport({
     host: "smtp.hostinger.com",
     port: 465,
-    secure: true, // use SSL
+    secure: true,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD
@@ -36,11 +25,17 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Initialize AI components
 const vectorDb = new MemVectorDB();
 
-// Register routes function now accepts llmGateway
 export async function registerRoutes(app: Express, llmGateway: LLMGateway): Promise<Server> {
+    // Auth check route
+    app.get("/api/auth/check", (req: Request, res: Response) => {
+        if (!req.session.userId) {
+            return res.status(401).json({ authenticated: false });
+        }
+        res.json({ authenticated: true, user: req.session.user });
+    });
+
     // Health check route
     app.get("/api/health", (_req, res) => {
         res.json({ status: "ok" });
