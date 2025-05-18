@@ -213,7 +213,7 @@ export async function register(req: Request, res: Response) {
 
       // Only send verification email if not already sent
       if (!req.query.fromVerify) {
-        const verificationUrl = `${process.env.APP_URL}/action-code?mode=verifyEmail&oobCode=${verificationToken}&lang=en`;
+        const verificationUrl = `${process.env.APP_URL}/action-code?mode=verifyEmail&token=${verificationToken}&lang=en`;
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
           to: email,
@@ -263,7 +263,7 @@ export async function resendVerification(req: Request, res: Response) {
 
     // Generate new verification token
     const newVerificationToken = `${uuidv4()}_${Date.now()}`;
-    const verificationUrl = `${process.env.APP_URL}/action-code?mode=verifyEmail&oobCode=${newVerificationToken}&lang=en`;
+    const verificationUrl = `${process.env.APP_URL}/action-code?mode=verifyEmail&token=${newVerificationToken}&lang=en`;
 
     let transporter: nodemailer.Transporter;
     if (!transporter) {
