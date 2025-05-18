@@ -76,20 +76,22 @@ export default function Verify() {
       const response = await fetch('/api/auth/resend-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: emailToVerify,
-          goto: '/~'
-        })
+        body: JSON.stringify({ email: emailToVerify })
       });
 
-      if (response.ok) {
-        toast({
-          title: "Email sent",
-          description: "New verification email has been sent"
-        });
-      } else {
+      if (!response.ok) {
         throw new Error('Failed to resend verification email');
       }
+
+      const data = await response.json();
+      
+      toast({
+        title: "Email sent",
+        description: "New verification email has been sent"
+      });
+
+      // Set new email in localStorage
+      localStorage.setItem('verificationEmail', emailToVerify);
     } catch (error) {
       toast({
         variant: "destructive",
@@ -101,6 +103,15 @@ export default function Verify() {
 
   // Different layout for action-code verification
   if (location.pathname === '/action-code') {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('oobCode');
+    
+    useEffect(() => {
+      if (token) {
+        verifyEmail(token);
+      }
+    }, [token]);
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="max-w-md w-full space-y-8 p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
