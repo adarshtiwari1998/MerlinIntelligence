@@ -213,7 +213,7 @@ export async function register(req: Request, res: Response) {
 
       // Only send verification email if not already sent
       if (!req.query.fromVerify) {
-        const verificationUrl = `${process.env.APP_URL}/verify?token=${verificationToken}`;
+        const verificationUrl = `${process.env.APP_URL}/action-code?mode=verifyEmail&oobCode=${verificationToken}&apiKey=${process.env.API_KEY}&lang=en`;
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
           to: email,
@@ -244,6 +244,56 @@ export async function register(req: Request, res: Response) {
       }
     }
     res.status(500).json({ message: 'Registration failed' });
+  }
+}
+
+export async function resendVerification(req: Request, res: Response) {
+  const { email, goto } = req.body;
+  
+  try {
+    const [pendingUser] = await db
+      .select()
+      .from(pendingUsers)
+      .where(eq(pendingUsers.email, email))
+      .limit(1);
+
+    if (!pendingUser) {
+      return res.status(404).json({ message: 'No pending verification found' });
+    }
+
+    // Generate new verification token
+    const newVerificationToken = `${uuidv4()}_${Date.now()}`;
+    const verificationUrl = `${process.env.APP_URL}/action-code?mode=verifyEmail&oobCode=${newVerificationToken}&apiKey=${process.env.API_KEY}&lang=en`;
+
+    // Update token in database
+    await db
+      .update(pendingUsers)
+      .set({ 
+        verificationToken: newVerificationToken,
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000) // 30 minutes
+      })
+      .where(eq(pendingUsers.email, email));
+
+    // Send new verification email
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Verify your email',
+      html: `
+        <h1>Welcome to our platform!</h1>
+        <p>Please click the link below to verify your account:</p>
+        <p><a href="${verificationUrl}">${verificationUrl}</a></p>
+        <p>This link will expire in 30 minutes.</p>
+      `
+    });
+
+    res.json({
+      message: 'New verification email sent',
+      email: email
+    });
+  } catch (error) {
+    console.error('Resend verification error:', error);
+    res.status(500).json({ message: 'Failed to resend verification email' });
   }
 }
 

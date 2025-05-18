@@ -82,16 +82,25 @@ export default function Verify() {
 
   const handleResend = async () => {
     try {
+      // Get email from localStorage if not in state
+      const emailToVerify = email || localStorage.getItem('verificationEmail');
+      if (!emailToVerify) {
+        throw new Error('No email found for verification');
+      }
+
       const response = await fetch('/api/auth/resend-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ 
+          email: emailToVerify,
+          goto: '/~'
+        })
       });
 
       if (response.ok) {
         toast({
           title: "Email sent",
-          description: "Verification email has been resent"
+          description: "New verification email has been sent"
         });
       } else {
         throw new Error('Failed to resend verification email');
