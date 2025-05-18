@@ -324,7 +324,7 @@ export async function verifyEmail(req: Request, res: Response) {
     const [pendingUser] = await db
       .select()
       .from(pendingUsers)
-      .where(eq(pendingUsers.verificationToken, token))
+      .where(eq(pendingUsers.verificationToken, verificationToken))
       .limit(1);
 
     if (!pendingUser) {

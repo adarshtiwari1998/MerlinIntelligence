@@ -24,7 +24,7 @@ export default function ActionCode() {
       const response = await fetch('/api/auth/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token })
+        body: JSON.stringify({ oobCode: token })
       });
 
       if (response.ok) {
