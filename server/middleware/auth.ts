@@ -249,7 +249,7 @@ export async function register(req: Request, res: Response) {
 
 export async function resendVerification(req: Request, res: Response) {
   const { email } = req.body;
-  
+
   try {
     const [pendingUser] = await db
       .select()
@@ -316,15 +316,18 @@ export async function resendVerification(req: Request, res: Response) {
 }
 
 export async function verifyEmail(req: Request, res: Response) {
-  const { token, oobCode } = req.body;
-  const verificationToken = token || oobCode;
+  const token = req.body.token || req.query.token;
+
+  if (!token) {
+      return res.status(400).json({ message: 'Verification token is required' });
+  }
 
   try {
     // Find pending user with this verification token
     const [pendingUser] = await db
       .select()
       .from(pendingUsers)
-      .where(eq(pendingUsers.verificationToken, verificationToken))
+      .where(eq(pendingUsers.verificationToken, token))
       .limit(1);
 
     if (!pendingUser) {

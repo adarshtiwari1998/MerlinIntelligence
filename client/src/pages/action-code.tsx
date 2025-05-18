@@ -11,7 +11,7 @@ export default function ActionCode() {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const token = params.get('oobCode');
+    const token = params.get('token');
     const mode = params.get('mode');
 
     if (token && mode === 'verifyEmail') {
@@ -24,7 +24,7 @@ export default function ActionCode() {
       const response = await fetch('/api/auth/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ oobCode: token })
+        body: JSON.stringify({ token })
       });
 
       if (response.ok) {
