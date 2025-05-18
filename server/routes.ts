@@ -30,10 +30,16 @@ const vectorDb = new MemVectorDB();
 export async function registerRoutes(app: Express, llmGateway: LLMGateway): Promise<Server> {
     // Auth check route
     app.get("/api/auth/check", (req: Request, res: Response) => {
-        if (!req.session.userId) {
-            return res.status(401).json({ authenticated: false });
+        if (!req.session?.userId) {
+            return res.status(200).json({ 
+                authenticated: false,
+                user: null 
+            });
         }
-        res.json({ authenticated: true, user: req.session.user });
+        res.json({ 
+            authenticated: true, 
+            user: req.session.user 
+        });
     });
 
     // Health check route
