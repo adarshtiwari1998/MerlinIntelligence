@@ -8,14 +8,40 @@ export default function Verify() {
   const { toast } = useToast();
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'success' | 'error'>('pending');
 
-  const verifyEmail = async (code: string) => {
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('code') || params.get('token');
+    const mode = params.get('mode');
+    const goto = params.get('goto');
+
+    // Get email from localStorage
+    const storedEmail = localStorage.getItem('verificationEmail');
+    if (storedEmail) {
+      setEmail(storedEmail);
+    }
+
+    // If we have a token, verify it
+    if (token) {
+      verifyEmail(token);
+    }
+
+    // Handle redirect after verification
+    if (goto) {
+      const redirectPath = decodeURIComponent(goto);
+      if (redirectPath.startsWith('/~')) {
+        navigate('/chat');
+      }
+    }
+  }, [location.search]);
+
+  const verifyEmail = async (token: string) => {
     try {
       const response = await fetch('/api/auth/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: code })
+        body: JSON.stringify({ token })
       });
-      const data = await response.json();
+
       if (response.ok) {
         setVerificationStatus('success');
         toast({
@@ -25,61 +51,17 @@ export default function Verify() {
         localStorage.removeItem('verificationEmail');
         setTimeout(() => navigate('/chat'), 1500);
       } else {
-        setVerificationStatus('error');
-        throw new Error(data.message || 'Verification failed');
+        throw new Error('Verification failed');
       }
     } catch (error) {
       setVerificationStatus('error');
       toast({
         variant: "destructive",
         title: "Verification failed",
-        description: "Invalid or expired verification link"
+        description: "Please try again or request a new verification email"
       });
     }
   };
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const token = params.get('code');
-    const mode = params.get('mode');
-
-    // Attempt to get the email from local storage first
-    let storedEmail = localStorage.getItem('verificationEmail');
-
-    // If there is no stored email, fetch it from /api/auth/verify/check
-    if (!storedEmail && token) {
-      fetch(`/api/auth/verify/check?token=${token}&sendEmail=true`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.email) {
-            setEmail(data.email);
-            storedEmail = data.email; // Update storedEmail with the fetched email
-            verifyEmail(token); // Verify email directly using the token
-          } else {
-            throw new Error("Email not found");
-          }
-        })
-        .catch(() => {
-          toast({
-            variant: "destructive",
-            title: "Invalid verification link",
-            description: "Please try signing up again"
-          });
-          navigate('/sign-up');
-        });
-    }
-
-    // If we have a stored email, set the state
-    if (storedEmail) {
-      setEmail(storedEmail);
-    }
-
-    // If mode is verifyEmail and we have a code, verify the email
-    if (mode === 'verifyEmail' && token) {
-      verifyEmail(token);
-    }
-  }, [location.search, navigate, toast]);
-
 
   const handleResend = async () => {
     try {
@@ -106,9 +88,11 @@ export default function Verify() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <h2 className="text-2xl font-bold">Verify your email address to continue</h2>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">
-            We sent an email to {email}. Click the link in that email to verify your account.
-          </p>
+          {email && (
+            <p className="mt-4 text-gray-600 dark:text-gray-400">
+              We sent an email to {email}. Click the link in that email to verify your account.
+            </p>
+          )}
           <button
             onClick={handleResend}
             className="mt-4 text-blue-600 hover:underline text-sm"
